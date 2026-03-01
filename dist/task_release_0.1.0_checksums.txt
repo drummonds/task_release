@@ -1,4 +1,0 @@
-4e04d45490441509d2cd139a7d580d8d3443e07d5ee1f19d202fa937ca621ba0  task_release_0.1.0_darwin_amd64.tar.gz
-f2e45dff900543b27f89c0d7b5bb91116b95d37ac223bdaa0fe7475912d5dc7a  task_release_0.1.0_darwin_arm64.tar.gz
-3a70695d3d95fade07e96bffcf2ad0ca1e0375a9816dd53032702386d1c96403  task_release_0.1.0_linux_amd64.tar.gz
-7242d04b25c3201cd5b3d994b2ca3e7ff63a99e6d7aab86bc17960eeacfd35e2  task_release_0.1.0_linux_arm64.tar.gz

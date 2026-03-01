@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/drummonds/task-release/internal/version"
+	"github.com/drummonds/task-plus/internal/version"
 )
 
 // HasGH returns true if the gh CLI is available.

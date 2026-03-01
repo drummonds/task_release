@@ -88,7 +88,7 @@ func TestInstallNil(t *testing.T) {
 
 func TestInstallFromYAML(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "task-release.yml"), []byte("install: true\n"), 0644)
+	os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte("install: true\n"), 0644)
 
 	cfg, err := Load(dir)
 	if err != nil {
@@ -111,7 +111,7 @@ cleanup:
   keep_patches: 3
   keep_minors: 10
 `
-	os.WriteFile(filepath.Join(dir, "task-release.yml"), []byte(yaml), 0644)
+	os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte(yaml), 0644)
 
 	cfg, err := Load(dir)
 	if err != nil {

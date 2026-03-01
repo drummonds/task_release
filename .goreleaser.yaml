@@ -5,8 +5,8 @@ before:
     - go mod tidy
 
 builds:
-  - main: ./cmd/task-release
-    binary: task-release
+  - main: ./cmd/task-plus
+    binary: task-plus
     env:
       - CGO_ENABLED=0
     goos:

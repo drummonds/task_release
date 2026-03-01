@@ -21,7 +21,7 @@ tasks:
 
   build:
     cmds:
-      - go build -o bin/task-release ./cmd/task-release
+      - go build -o bin/task-plus ./cmd/task-plus
 
   deps:tidy:
     cmds:
@@ -30,13 +30,3 @@ tasks:
   clean:
     cmds:
       - rm -rf bin/ dist/
-
-  release:
-    desc: Release using task-release (dogfooding). Falls back to local build if not installed.
-    cmds:
-      - |
-        if command -v task-release >/dev/null 2>&1; then
-          task-release
-        else
-          go run ./cmd/task-release
-        fi

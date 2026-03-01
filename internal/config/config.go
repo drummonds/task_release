@@ -31,7 +31,7 @@ func (c *Config) ShouldInstall() bool {
 	return *c.Install
 }
 
-const configFile = "task-release.yml"
+const configFile = "task-plus.yml"
 
 // Load reads task-release.yml from dir, then applies auto-detection for unset fields.
 func Load(dir string) (*Config, error) {

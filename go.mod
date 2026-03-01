@@ -1,4 +1,4 @@
-module github.com/drummonds/task-release
+module github.com/drummonds/task-plus
 
 go 1.25.3
 

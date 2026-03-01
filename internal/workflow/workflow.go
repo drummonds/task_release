@@ -6,13 +6,13 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/drummonds/task-release/internal/changelog"
-	"github.com/drummonds/task-release/internal/cleanup"
-	"github.com/drummonds/task-release/internal/config"
-	"github.com/drummonds/task-release/internal/git"
-	"github.com/drummonds/task-release/internal/prompt"
-	"github.com/drummonds/task-release/internal/release"
-	"github.com/drummonds/task-release/internal/version"
+	"github.com/drummonds/task-plus/internal/changelog"
+	"github.com/drummonds/task-plus/internal/cleanup"
+	"github.com/drummonds/task-plus/internal/config"
+	"github.com/drummonds/task-plus/internal/git"
+	"github.com/drummonds/task-plus/internal/prompt"
+	"github.com/drummonds/task-plus/internal/release"
+	"github.com/drummonds/task-plus/internal/version"
 )
 
 type Context struct {

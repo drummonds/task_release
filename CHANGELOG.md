@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-03-01
+
+ - Trying after clean
+
 ## [0.1.6] - 2026-03-01
 
  - Cleaning goreleaser

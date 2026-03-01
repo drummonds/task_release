@@ -94,7 +94,7 @@ func runRelease(args []string) {
 	// Guard: refuse if Taskfile.yml has a release: task (avoid self-conflict)
 	if _, serr := os.Stat(filepath.Join(absDir, "Taskfile.yml")); serr == nil {
 		data, rerr := os.ReadFile(filepath.Join(absDir, "Taskfile.yml"))
-		if rerr == nil && hasTaskfileRelease(data) {
+		if rerr == nil && hasTaskfileTask(data, "release") {
 			fmt.Fprintf(os.Stderr, "Error: Taskfile.yml contains a 'release' task.\n")
 			fmt.Fprintf(os.Stderr, "Remove it to avoid conflict with 'task-plus release'.\n")
 			os.Exit(1)
@@ -116,9 +116,9 @@ func runRelease(args []string) {
 	}
 }
 
-// hasTaskfileRelease checks if YAML data contains a top-level "release:" task key.
-func hasTaskfileRelease(data []byte) bool {
-	// Simple line-based check: look for "  release:" under tasks
+// hasTaskfileTask checks if YAML data contains a top-level task with the given name.
+func hasTaskfileTask(data []byte, taskName string) bool {
+	prefix := "  " + taskName + ":"
 	lines := splitLines(string(data))
 	inTasks := false
 	for _, line := range lines {
@@ -129,7 +129,7 @@ func hasTaskfileRelease(data []byte) bool {
 		if inTasks && len(line) > 0 && line[0] != ' ' && line[0] != '\t' {
 			inTasks = false
 		}
-		if inTasks && (line == "  release:" || len(line) > 10 && line[:10] == "  release:") {
+		if inTasks && (line == prefix || len(line) > len(prefix) && line[:len(prefix)] == prefix) {
 			return true
 		}
 	}
@@ -163,7 +163,23 @@ func runPages(args []string) {
 		os.Exit(1)
 	}
 
-	if err := pages.Serve(absDir, *port); err != nil {
+	// Guard: refuse if Taskfile.yml has a pages: task (avoid self-conflict)
+	if _, serr := os.Stat(filepath.Join(absDir, "Taskfile.yml")); serr == nil {
+		data, rerr := os.ReadFile(filepath.Join(absDir, "Taskfile.yml"))
+		if rerr == nil && hasTaskfileTask(data, "pages") {
+			fmt.Fprintf(os.Stderr, "Error: Taskfile.yml contains a 'pages' task.\n")
+			fmt.Fprintf(os.Stderr, "Remove it to avoid conflict with 'task-plus pages'.\n")
+			os.Exit(1)
+		}
+	}
+
+	cfg, err := config.Load(absDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+		os.Exit(1)
+	}
+
+	if err := pages.Serve(absDir, *port, cfg.PagesBuild); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}

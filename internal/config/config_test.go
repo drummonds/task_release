@@ -102,6 +102,79 @@ func TestInstallFromYAML(t *testing.T) {
 	}
 }
 
+func TestPagesBuildDetectBuildDocs(t *testing.T) {
+	dir := t.TempDir()
+	taskfile := `version: "3"
+tasks:
+  build:docs:
+    cmds:
+      - echo build docs
+  build:
+    cmds:
+      - go build ./...
+`
+	os.WriteFile(filepath.Join(dir, "Taskfile.yml"), []byte(taskfile), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.PagesBuild) != 1 || cfg.PagesBuild[0] != "task build:docs" {
+		t.Errorf("PagesBuild = %v, want [task build:docs]", cfg.PagesBuild)
+	}
+}
+
+func TestPagesBuildIgnoresGenericBuild(t *testing.T) {
+	dir := t.TempDir()
+	taskfile := `version: "3"
+tasks:
+  build:
+    cmds:
+      - go build ./...
+`
+	os.WriteFile(filepath.Join(dir, "Taskfile.yml"), []byte(taskfile), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.PagesBuild) != 0 {
+		t.Errorf("PagesBuild = %v, want empty (generic build: should not match)", cfg.PagesBuild)
+	}
+}
+
+func TestPagesBuildNone(t *testing.T) {
+	dir := t.TempDir()
+	taskfile := `version: "3"
+tasks:
+  test:
+    cmds:
+      - go test ./...
+`
+	os.WriteFile(filepath.Join(dir, "Taskfile.yml"), []byte(taskfile), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.PagesBuild) != 0 {
+		t.Errorf("PagesBuild = %v, want empty", cfg.PagesBuild)
+	}
+}
+
+func TestPagesBuildFromYAML(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte("pages_build: [\"make docs\"]\n"), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.PagesBuild) != 1 || cfg.PagesBuild[0] != "make docs" {
+		t.Errorf("PagesBuild = %v, want [make docs]", cfg.PagesBuild)
+	}
+}
+
 func TestLoadYAML(t *testing.T) {
 	dir := t.TempDir()
 	yaml := `type: binary

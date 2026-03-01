@@ -1,0 +1,62 @@
+package workflow
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+
+	"github.com/drummonds/task-plus/internal/cleanup"
+	"github.com/drummonds/task-plus/internal/git"
+	"github.com/drummonds/task-plus/internal/version"
+)
+
+// Gather performs read-only state probing to populate the plan.
+func Gather(ctx *Context) error {
+	p := &ctx.Plan
+
+	// Git status
+	out, err := git.Status(ctx.Config.Dir)
+	if err != nil {
+		return err
+	}
+	p.StatusOutput = out
+	p.GitDirty = out != ""
+
+	// Tags + retracted versions → suggested version
+	tags, err := git.Tags(ctx.Config.Dir)
+	if err != nil {
+		return err
+	}
+
+	retracted, err := version.ParseRetracted(ctx.Config.Dir)
+	if err != nil {
+		return fmt.Errorf("parsing retracted versions: %w", err)
+	}
+	p.Retracted = retracted
+
+	latest, found := version.LatestFromTags(tags, retracted)
+	p.LatestTag = latest
+	p.FoundTag = found
+	if found {
+		p.SuggestedVersion = latest.BumpPastRetracted(retracted)
+	} else {
+		p.SuggestedVersion = version.Version{Major: 0, Minor: 1, Patch: 0}
+	}
+
+	// Goreleaser config exists?
+	configPath := filepath.Join(ctx.Config.Dir, ctx.Config.GoreleaserConfig)
+	if _, err := os.Stat(configPath); err == nil {
+		p.HasGoreleaserCfg = true
+	}
+
+	// GitHub CLI available? List releases for cleanup planning.
+	p.HasGH = cleanup.HasGH()
+	if p.HasGH {
+		releases, err := cleanup.ListReleases(ctx.Config.Dir)
+		if err == nil {
+			p.ReleasesToDelete = cleanup.PlanDeletions(releases, ctx.Config.Cleanup.KeepPatches, ctx.Config.Cleanup.KeepMinors)
+		}
+	}
+
+	return nil
+}

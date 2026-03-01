@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -20,6 +21,7 @@ type Config struct {
 	GoreleaserConfig string        `yaml:"goreleaser_config"`
 	Cleanup          CleanupConfig `yaml:"cleanup"`
 	Install          *bool         `yaml:"install"`
+	PagesBuild       []string      `yaml:"pages_build"`
 	Dir              string        `yaml:"-"`
 }
 
@@ -66,6 +68,9 @@ func (c *Config) applyDefaults() {
 	}
 	if c.Cleanup.KeepMinors == 0 {
 		c.Cleanup.KeepMinors = 5
+	}
+	if len(c.PagesBuild) == 0 {
+		c.PagesBuild = c.detectPagesBuild()
 	}
 }
 
@@ -132,6 +137,52 @@ func splitLines(s string) []string {
 		lines = append(lines, s[start:])
 	}
 	return lines
+}
+
+// detectPagesBuild auto-detects a build command from Taskfile.yml.
+// Looks for build:docs task. Warns if build-pages is found (should be renamed).
+func (c *Config) detectPagesBuild() []string {
+	data, err := os.ReadFile(filepath.Join(c.Dir, "Taskfile.yml"))
+	if err != nil {
+		return nil
+	}
+	lines := splitLines(string(data))
+	inTasks := false
+	hasBuildDocs := false
+	hasBuildPages := false
+	for _, line := range lines {
+		if line == "tasks:" {
+			inTasks = true
+			continue
+		}
+		if inTasks && len(line) > 0 && line[0] != ' ' && line[0] != '\t' {
+			inTasks = false
+		}
+		if inTasks {
+			trimmed := line
+			for len(trimmed) > 0 && (trimmed[0] == ' ' || trimmed[0] == '\t') {
+				trimmed = trimmed[1:]
+			}
+			if trimmed == "build:docs:" || (len(trimmed) > 11 && trimmed[:11] == "build:docs:") {
+				hasBuildDocs = true
+			}
+			if trimmed == "build-pages:" || (len(trimmed) > 12 && trimmed[:12] == "build-pages:") {
+				hasBuildPages = true
+			}
+		}
+	}
+	if hasBuildDocs {
+		return []string{"task build:docs"}
+	}
+	if hasBuildPages {
+		fmt.Fprintf(os.Stderr, "Warning: Taskfile has 'build-pages' task — consider renaming to 'build:docs' for auto-detection.\n")
+	}
+	return nil
+}
+
+// HasPagesBuild returns true if page build steps are configured.
+func (c *Config) HasPagesBuild() bool {
+	return len(c.PagesBuild) > 0
 }
 
 // IsBinary returns true if this is a binary (goreleaser) project.

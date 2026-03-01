@@ -25,6 +25,14 @@ type Context struct {
 
 // Run executes the full release workflow.
 func Run(cfg *config.Config, dryRun bool) error {
+	// Binary projects run goreleaser which requires a clean git state.
+	// Check upfront so we fail fast rather than leaving things half-done.
+	if cfg.IsBinary() {
+		if err := checkDistClean(cfg.Dir); err != nil {
+			return err
+		}
+	}
+
 	ctx := &Context{Config: cfg, DryRun: dryRun}
 
 	steps := []struct {
@@ -319,4 +327,20 @@ func stepLocalInstall(ctx *Context) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+// checkDistClean fails fast if dist/ exists and would make git dirty for goreleaser.
+func checkDistClean(dir string) error {
+	distDir := dir + "/dist"
+	if _, err := os.Stat(distDir); err == nil {
+		// dist/ exists — check if git sees it as dirty
+		clean, err := git.IsClean(dir)
+		if err != nil {
+			return err
+		}
+		if !clean {
+			return fmt.Errorf("git working tree is dirty (dist/ exists). Run 'rm -rf dist/' or 'task clean' first")
+		}
+	}
+	return nil
 }

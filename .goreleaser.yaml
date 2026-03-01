@@ -18,7 +18,8 @@ builds:
       - arm64
 
 archives:
-  - format: tar.gz
+  - formats:
+      - tar.gz
 
 changelog:
   sort: asc

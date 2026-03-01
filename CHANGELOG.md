@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.1.13] - 2026-03-01
+
+ - Improving retracted version detectinog
+
 ## [0.1.12] - 2026-03-01
 
  - Improving install

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.1.15] - 2026-03-02
+
+ - Adding task precheck to make quicker
+
 ## [0.1.14] - 2026-03-01
 
  - Server incrmementally skips ports to find one open

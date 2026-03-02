@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.1.16] - 2026-03-02
+
+ - Making release deletes cleaner
+
 ## [0.1.15] - 2026-03-02
 
  - Adding task precheck to make quicker

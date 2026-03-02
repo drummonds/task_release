@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/drummonds/task-plus/internal/changelog"
-	"github.com/drummonds/task-plus/internal/cleanup"
 	"github.com/drummonds/task-plus/internal/git"
 	"github.com/drummonds/task-plus/internal/release"
 	"github.com/drummonds/task-plus/internal/version"
@@ -152,7 +151,7 @@ func Execute(ctx *Context) error {
 		} else {
 			for _, d := range p.ReleasesToDelete {
 				fmt.Printf("  Deleting %s (%s)...\n", d.Tag, d.Reason)
-				if err := cleanup.DeleteRelease(ctx.Config.Dir, d.Tag); err != nil {
+				if err := p.Forge.DeleteRelease(ctx.Config.Dir, d.Tag); err != nil {
 					fmt.Printf("  Warning: %v\n", err)
 				}
 			}

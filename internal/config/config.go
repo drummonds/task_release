@@ -20,6 +20,7 @@ type Config struct {
 	ChangelogFormat  string        `yaml:"changelog_format"`
 	Wasm             []string      `yaml:"wasm"`
 	GoreleaserConfig string        `yaml:"goreleaser_config"`
+	Forge            string        `yaml:"forge"`
 	Cleanup          CleanupConfig `yaml:"cleanup"`
 	Install          *bool         `yaml:"install"`
 	InstallRetries   int           `yaml:"install_retries"`

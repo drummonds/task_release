@@ -9,6 +9,7 @@ import (
 
 	"github.com/drummonds/task-plus/internal/cleanup"
 	"github.com/drummonds/task-plus/internal/config"
+	"github.com/drummonds/task-plus/internal/forge"
 	"github.com/drummonds/task-plus/internal/version"
 )
 
@@ -23,7 +24,8 @@ type Plan struct {
 	Retracted        []version.Version
 	ReleasesToDelete []cleanup.Deletion
 	HasGoreleaserCfg bool
-	HasGH            bool
+	Forge            forge.Forge
+	HasForgeCLI      bool
 
 	// User decisions
 	DoGitAdd     bool

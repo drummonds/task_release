@@ -52,7 +52,7 @@ func Ask(ctx *Context) error {
 
 	// Cleanup
 	if len(p.ReleasesToDelete) > 0 {
-		fmt.Printf("  Will delete %d old release(s):\n", len(p.ReleasesToDelete))
+		fmt.Printf("  Will delete %d old %s release(s):\n", len(p.ReleasesToDelete), p.Forge.Type)
 		for _, d := range p.ReleasesToDelete {
 			fmt.Printf("    - %s (%s)\n", d.Tag, d.Reason)
 		}

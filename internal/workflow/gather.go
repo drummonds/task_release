@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/drummonds/task-plus/internal/cleanup"
+	"github.com/drummonds/task-plus/internal/forge"
 	"github.com/drummonds/task-plus/internal/git"
 	"github.com/drummonds/task-plus/internal/version"
 )
@@ -49,10 +50,15 @@ func Gather(ctx *Context) error {
 		p.HasGoreleaserCfg = true
 	}
 
-	// GitHub CLI available? List releases for cleanup planning.
-	p.HasGH = cleanup.HasGH()
-	if p.HasGH {
-		releases, err := cleanup.ListReleases(ctx.Config.Dir)
+	// Detect forge and check CLI availability for release cleanup.
+	f, err := forge.Detect(ctx.Config.Dir, ctx.Config.Forge)
+	if err != nil {
+		return fmt.Errorf("detecting forge: %w", err)
+	}
+	p.Forge = f
+	p.HasForgeCLI = f.HasCLI()
+	if p.HasForgeCLI {
+		releases, err := f.ListReleases(ctx.Config.Dir)
 		if err == nil {
 			p.ReleasesToDelete = cleanup.PlanDeletions(releases, ctx.Config.Cleanup.KeepPatches, ctx.Config.Cleanup.KeepMinors)
 		}

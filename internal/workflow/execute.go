@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -164,7 +165,11 @@ func Execute(ctx *Context) error {
 		if err != nil {
 			return fmt.Errorf("reading module path: %w", err)
 		}
-		installArg := modPath + "/cmd/...@" + p.Version.String()
+		// Use cmd/... if cmd/ directory exists, otherwise install the root package
+		installArg := modPath + "@" + p.Version.String()
+		if info, serr := os.Stat(filepath.Join(ctx.Config.Dir, "cmd")); serr == nil && info.IsDir() {
+			installArg = modPath + "/cmd/...@" + p.Version.String()
+		}
 		fmt.Printf("  Installing %s ...\n", installArg)
 		if ctx.DryRun {
 			fmt.Printf("  (dry-run) Would run GOPROXY=direct go install %s\n", installArg)

@@ -59,11 +59,13 @@ func Ask(ctx *Context) error {
 		p.DoCleanup = prompt.ConfirmOrAuto("Delete these releases?")
 	}
 
-	// Install
-	if ctx.Config.Install != nil {
-		p.DoInstall = *ctx.Config.Install
-	} else {
-		p.DoInstall = prompt.ConfirmOrAuto("Install locally (go install)?")
+	// Install (only for binary projects)
+	if ctx.Config.IsBinary() {
+		if ctx.Config.Install != nil {
+			p.DoInstall = *ctx.Config.Install
+		} else {
+			p.DoInstall = prompt.ConfirmOrAuto("Install locally (go install)?")
+		}
 	}
 
 	// Summary

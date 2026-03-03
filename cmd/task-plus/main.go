@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime/debug"
 
@@ -32,7 +33,7 @@ var commands = []struct {
 	name string
 	desc string
 }{
-	{"release", "Interactive release workflow"},
+	{"release", "Interactive release workflow (runs Taskfile post:release if present)"},
 	{"pages", "Serve docs/ directory over HTTP"},
 	{"md2html", "Convert markdown files to Bulma-styled HTML"},
 	{"self", "Manage task-plus itself (update, etc.)"},
@@ -122,9 +123,24 @@ func runRelease(args []string) {
 		fmt.Fprintf(os.Stderr, "\nError: %v\n", err)
 		os.Exit(1)
 	}
+
+	// Run post:release Taskfile task if it exists
+	taskfilePath := filepath.Join(absDir, "Taskfile.yml")
+	if data, err := os.ReadFile(taskfilePath); err == nil && hasTaskfileTask(data, "post:release") {
+		fmt.Println("\nRunning post:release task...")
+		cmd := exec.Command("task", "post:release")
+		cmd.Dir = absDir
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Fprintf(os.Stderr, "post:release failed: %v\n", err)
+			os.Exit(1)
+		}
+	}
 }
 
 // hasTaskfileTask checks if YAML data contains a top-level task with the given name.
+// Matches "  release:" but not "  release:post:" (colon-namespaced tasks are distinct).
 func hasTaskfileTask(data []byte, taskName string) bool {
 	prefix := "  " + taskName + ":"
 	lines := splitLines(string(data))
@@ -137,8 +153,11 @@ func hasTaskfileTask(data []byte, taskName string) bool {
 		if inTasks && len(line) > 0 && line[0] != ' ' && line[0] != '\t' {
 			inTasks = false
 		}
-		if inTasks && (line == prefix || len(line) > len(prefix) && line[:len(prefix)] == prefix) {
-			return true
+		if inTasks && len(line) >= len(prefix) && line[:len(prefix)] == prefix {
+			// Exact match or followed by space (inline YAML), not more name chars
+			if len(line) == len(prefix) || line[len(prefix)] == ' ' {
+				return true
+			}
 		}
 	}
 	return false

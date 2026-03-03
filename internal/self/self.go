@@ -3,11 +3,17 @@ package self
 
 import (
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 )
 
-const modulePath = "github.com/drummonds/task-plus/cmd/task-plus"
+const (
+	modulePath = "github.com/drummonds/task-plus/cmd/task-plus"
+	moduleName = "github.com/drummonds/task-plus"
+)
 
 // Run dispatches self sub-subcommands.
 func Run(args []string, version string) error {
@@ -25,8 +31,20 @@ func Run(args []string, version string) error {
 
 func runUpdate(currentVersion string) error {
 	fmt.Printf("Current version: %s\n", currentVersion)
-	fmt.Printf("Installing latest: go install %s@latest\n", modulePath)
 
+	latest, err := fetchLatestVersion()
+	if err != nil {
+		fmt.Printf("Could not check latest version: %v\n", err)
+		fmt.Println("Proceeding with update anyway...")
+	} else {
+		fmt.Printf("Latest version:  %s\n", latest)
+		if latest == currentVersion {
+			fmt.Println("Already up to date.")
+			return nil
+		}
+	}
+
+	fmt.Printf("Installing: go install %s@latest\n", modulePath)
 	cmd := exec.Command("go", "install", modulePath+"@latest")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -36,4 +54,31 @@ func runUpdate(currentVersion string) error {
 
 	fmt.Println("Updated successfully.")
 	return nil
+}
+
+// fetchLatestVersion queries the Go module proxy for the latest version.
+func fetchLatestVersion() (string, error) {
+	url := "https://proxy.golang.org/" + moduleName + "/@latest"
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("proxy returned %s", resp.Status)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	// Response is JSON: {"Version":"v0.1.21","Time":"..."}
+	// Simple extraction to avoid adding encoding/json for one field.
+	s := string(body)
+	if i := strings.Index(s, `"Version":"`); i >= 0 {
+		s = s[i+len(`"Version":"`):]
+		if j := strings.Index(s, `"`); j >= 0 {
+			return s[:j], nil
+		}
+	}
+	return "", fmt.Errorf("unexpected proxy response")
 }

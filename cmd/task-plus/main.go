@@ -8,8 +8,10 @@ import (
 	"runtime/debug"
 
 	"github.com/drummonds/task-plus/internal/config"
+	"github.com/drummonds/task-plus/internal/md2html"
 	"github.com/drummonds/task-plus/internal/pages"
 	"github.com/drummonds/task-plus/internal/prompt"
+	"github.com/drummonds/task-plus/internal/self"
 	"github.com/drummonds/task-plus/internal/workflow"
 )
 
@@ -32,6 +34,8 @@ var commands = []struct {
 }{
 	{"release", "Interactive release workflow"},
 	{"pages", "Serve docs/ directory over HTTP"},
+	{"md2html", "Convert markdown files to Bulma-styled HTML"},
+	{"self", "Manage task-plus itself (update, etc.)"},
 }
 
 func main() {
@@ -49,6 +53,10 @@ func main() {
 		runRelease(os.Args[2:])
 	case "pages":
 		runPages(os.Args[2:])
+	case "md2html":
+		runMd2html(os.Args[2:])
+	case "self":
+		runSelf(os.Args[2:])
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", os.Args[1])
 		usage()
@@ -180,6 +188,33 @@ func runPages(args []string) {
 	}
 
 	if err := pages.Serve(absDir, *port, cfg.PagesBuild); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func runMd2html(args []string) {
+	fs := flag.NewFlagSet("md2html", flag.ExitOnError)
+	src := fs.String("src", "docs/internal", "source markdown directory")
+	dst := fs.String("dst", "docs/internal", "destination HTML directory")
+	label := fs.String("label", "Internal Docs", "breadcrumb label for this doc set")
+	project := fs.String("project", "", "project name (auto-detected from go.mod if empty)")
+	fs.Parse(args)
+
+	cfg := md2html.Config{
+		Src:     *src,
+		Dst:     *dst,
+		Label:   *label,
+		Project: *project,
+	}
+	if err := md2html.Run(cfg); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func runSelf(args []string) {
+	if err := self.Run(args, appVersion); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}

@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+- Added `md2html` subcommand (converts markdown to Bulma-styled HTML)
+- Added `self update` subcommand (installs latest version via go install)
+
 ## [0.1.20] - 2026-03-03
 
  - Removing install wihtout a goreleaser option

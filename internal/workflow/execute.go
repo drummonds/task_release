@@ -192,34 +192,43 @@ func Execute(ctx *Context) error {
 		if err != nil {
 			return fmt.Errorf("reading module path: %w", err)
 		}
-		// Use cmd/... if cmd/ directory exists, otherwise install the root package
-		installArg := modPath + "@" + p.Version.String()
-		if info, serr := os.Stat(filepath.Join(ctx.Config.Dir, "cmd")); serr == nil && info.IsDir() {
-			installArg = modPath + "/cmd/...@" + p.Version.String()
+		// Detect fork: if git remote doesn't match go.mod module path, skip install
+		remotePath, err := version.GitRemoteModulePath(ctx.Config.Dir)
+		if err != nil {
+			return fmt.Errorf("reading git remote: %w", err)
 		}
-		fmt.Printf("  Installing %s ...\n", installArg)
-		if ctx.DryRun {
-			fmt.Printf("  (dry-run) Would run GOPROXY=direct go install %s\n", installArg)
+		if remotePath != "" && remotePath != modPath {
+			fmt.Printf("  Skipping install: go.mod module path (%s) doesn't match git remote (%s) — fork detected. Update go.mod or install manually.\n", modPath, remotePath)
 		} else {
-			retries := ctx.Config.InstallRetries
-			var lastErr error
-			for attempt := 1; attempt <= retries; attempt++ {
-				cmd := exec.Command("go", "install", installArg)
-				cmd.Env = append(os.Environ(), "GOPROXY=direct")
-				cmd.Stdout = os.Stdout
-				cmd.Stderr = os.Stderr
-				lastErr = cmd.Run()
-				if lastErr == nil {
-					break
-				}
-				if attempt < retries {
-					delay := time.Duration(attempt*5) * time.Second
-					fmt.Printf("  Install attempt %d/%d failed, retrying in %s...\n", attempt, retries, delay)
-					time.Sleep(delay)
-				}
+			// Use cmd/... if cmd/ directory exists, otherwise install the root package
+			installArg := modPath + "@" + p.Version.String()
+			if info, serr := os.Stat(filepath.Join(ctx.Config.Dir, "cmd")); serr == nil && info.IsDir() {
+				installArg = modPath + "/cmd/...@" + p.Version.String()
 			}
-			if lastErr != nil {
-				return fmt.Errorf("go install failed after %d attempts: %w", retries, lastErr)
+			fmt.Printf("  Installing %s ...\n", installArg)
+			if ctx.DryRun {
+				fmt.Printf("  (dry-run) Would run GOPROXY=direct go install %s\n", installArg)
+			} else {
+				retries := ctx.Config.InstallRetries
+				var lastErr error
+				for attempt := 1; attempt <= retries; attempt++ {
+					cmd := exec.Command("go", "install", installArg)
+					cmd.Env = append(os.Environ(), "GOPROXY=direct")
+					cmd.Stdout = os.Stdout
+					cmd.Stderr = os.Stderr
+					lastErr = cmd.Run()
+					if lastErr == nil {
+						break
+					}
+					if attempt < retries {
+						delay := time.Duration(attempt*5) * time.Second
+						fmt.Printf("  Install attempt %d/%d failed, retrying in %s...\n", attempt, retries, delay)
+						time.Sleep(delay)
+					}
+				}
+				if lastErr != nil {
+					return fmt.Errorf("go install failed after %d attempts: %w", retries, lastErr)
+				}
 			}
 		}
 	}

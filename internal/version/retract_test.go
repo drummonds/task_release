@@ -97,3 +97,26 @@ func TestBumpPastRetractedNone(t *testing.T) {
 		t.Errorf("BumpPastRetracted() = %v, want %v", got, want)
 	}
 }
+
+func TestParseGitURL(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"git@github.com:drummonds/task-plus.git", "github.com/drummonds/task-plus"},
+		{"git@github.com:user/repo.git", "github.com/user/repo"},
+		{"git@gitlab.com:org/project.git", "gitlab.com/org/project"},
+		{"git@github.com:user/repo", "github.com/user/repo"},
+		{"https://github.com/drummonds/task-plus.git", "github.com/drummonds/task-plus"},
+		{"https://github.com/user/repo", "github.com/user/repo"},
+		{"http://github.com/user/repo.git", "github.com/user/repo"},
+		{"", ""},
+		{"file:///local/repo", ""},
+	}
+	for _, tt := range tests {
+		got := ParseGitURL(tt.input)
+		if got != tt.want {
+			t.Errorf("ParseGitURL(%q) = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}

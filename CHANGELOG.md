@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.1.22] - 2026-03-03
+
+ - Adding a post:release task stage
+
 ## [0.1.21] - 2026-03-03
 
  - Adding md2html and self update

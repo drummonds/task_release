@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.1.19] - 2026-03-03
+
+ - Allowing main.go at root level as an install pattern
+
 ## [0.1.18] - 2026-03-02
 
  - Adding multiple forges

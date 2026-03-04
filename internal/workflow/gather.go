@@ -48,6 +48,9 @@ func Gather(ctx *Context) error {
 	// Taskfile release:version-update task?
 	p.HasVersionUpdate = config.HasTaskfileTask(ctx.Config.Dir, "release:version-update")
 
+	// Taskfile release:install task?
+	p.HasReleaseInstall = config.HasTaskfileTask(ctx.Config.Dir, "release:install")
+
 	// Goreleaser config exists?
 	configPath := filepath.Join(ctx.Config.Dir, ctx.Config.GoreleaserConfig)
 	if _, err := os.Stat(configPath); err == nil {

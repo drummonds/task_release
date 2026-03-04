@@ -59,8 +59,8 @@ func Ask(ctx *Context) error {
 		p.DoCleanup = prompt.ConfirmOrAuto("Delete these releases?")
 	}
 
-	// Install (only for binary projects)
-	if ctx.Config.IsBinary() {
+	// Install (binary projects or custom release:install task)
+	if ctx.Config.IsBinary() || p.HasReleaseInstall {
 		if ctx.Config.Install != nil {
 			p.DoInstall = *ctx.Config.Install
 		} else {
@@ -95,7 +95,9 @@ func PrintSummary(ctx *Context) {
 	if p.DoCleanup {
 		fmt.Printf("  Cleanup: delete %d releases\n", len(p.ReleasesToDelete))
 	}
-	if p.DoInstall {
+	if p.DoInstall && p.HasReleaseInstall {
+		fmt.Println("  Install: yes (Taskfile release:install)")
+	} else if p.DoInstall {
 		fmt.Println("  Install: yes")
 	}
 	fmt.Println("---")

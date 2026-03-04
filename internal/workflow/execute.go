@@ -187,7 +187,22 @@ func Execute(ctx *Context) error {
 	}
 
 	// 11. Local install (bypass proxy to avoid stale cache after tag push)
-	if p.DoInstall {
+	if p.DoInstall && p.HasReleaseInstall {
+		// Custom install via Taskfile release:install
+		fmt.Printf("  Running release:install with VERSION=%s\n", p.Version)
+		if ctx.DryRun {
+			fmt.Println("  (dry-run) Would run: task release:install")
+		} else {
+			cmd := exec.Command("task", "release:install")
+			cmd.Dir = ctx.Config.Dir
+			cmd.Env = append(os.Environ(), "VERSION="+p.Version.String())
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			if err := cmd.Run(); err != nil {
+				return fmt.Errorf("release:install failed: %w", err)
+			}
+		}
+	} else if p.DoInstall {
 		modPath, err := version.ModulePath(ctx.Config.Dir)
 		if err != nil {
 			return fmt.Errorf("reading module path: %w", err)

@@ -16,17 +16,18 @@ import (
 // Plan holds all gathered state and user decisions for a release.
 type Plan struct {
 	// Gathered state
-	GitDirty         bool
-	StatusOutput     string
-	SuggestedVersion version.Version
-	LatestTag        version.Version
-	FoundTag         bool
-	Retracted        []version.Version
-	ReleasesToDelete []cleanup.Deletion
-	HasGoreleaserCfg bool
-	HasVersionUpdate bool
-	Forge            forge.Forge
-	HasForgeCLI      bool
+	GitDirty          bool
+	StatusOutput      string
+	SuggestedVersion  version.Version
+	LatestTag         version.Version
+	FoundTag          bool
+	Retracted         []version.Version
+	ReleasesToDelete  []cleanup.Deletion
+	HasGoreleaserCfg  bool
+	HasVersionUpdate  bool
+	HasReleaseInstall bool
+	Forge             forge.Forge
+	HasForgeCLI       bool
 
 	// User decisions
 	DoGitAdd     bool

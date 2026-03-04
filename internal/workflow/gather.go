@@ -45,6 +45,32 @@ func Gather(ctx *Context) error {
 		p.SuggestedVersion = version.Version{Major: 0, Minor: 1, Patch: 0}
 	}
 
+	// Fork detection: compare go.mod module path vs git remote
+	if ctx.Config.Fork != nil {
+		p.IsFork = *ctx.Config.Fork
+	} else {
+		modPath, err := version.ModulePath(ctx.Config.Dir)
+		if err == nil {
+			remotePath, err := version.GitRemoteModulePath(ctx.Config.Dir)
+			if err == nil && remotePath != "" && remotePath != modPath {
+				p.IsFork = true
+			}
+		}
+	}
+	if p.IsFork {
+		branch, err := git.CurrentBranch(ctx.Config.Dir)
+		if err != nil {
+			return fmt.Errorf("getting current branch: %w", err)
+		}
+		p.ForkBranch = branch
+		// Suggest pre-release version based on latest tag + branch name
+		base := p.SuggestedVersion.Base()
+		if found {
+			base = latest
+		}
+		p.SuggestedVersion = base.BumpPrerelease(branch, tags)
+	}
+
 	// Taskfile release:version-update task?
 	p.HasVersionUpdate = config.HasTaskfileTask(ctx.Config.Dir, "release:version-update")
 

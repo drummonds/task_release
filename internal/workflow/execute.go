@@ -207,13 +207,8 @@ func Execute(ctx *Context) error {
 		if err != nil {
 			return fmt.Errorf("reading module path: %w", err)
 		}
-		// Detect fork: if git remote doesn't match go.mod module path, skip install
-		remotePath, err := version.GitRemoteModulePath(ctx.Config.Dir)
-		if err != nil {
-			return fmt.Errorf("reading git remote: %w", err)
-		}
-		if remotePath != "" && remotePath != modPath {
-			fmt.Printf("  Skipping install: go.mod module path (%s) doesn't match git remote (%s) — fork detected. Update go.mod or install manually.\n", modPath, remotePath)
+		if p.IsFork {
+			fmt.Printf("  Skipping install: fork detected (branch: %s). Install manually if needed.\n", p.ForkBranch)
 		} else {
 			// Use cmd/... if cmd/ directory exists, otherwise install the root package
 			installArg := modPath + "@" + p.Version.String()

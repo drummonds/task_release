@@ -8,12 +8,13 @@ func TestParse(t *testing.T) {
 		want    Version
 		wantErr bool
 	}{
-		{"v1.2.3", Version{1, 2, 3}, false},
-		{"v0.1.0", Version{0, 1, 0}, false},
-		{"v10.20.30", Version{10, 20, 30}, false},
+		{"v1.2.3", Version{Major: 1, Minor: 2, Patch: 3}, false},
+		{"v0.1.0", Version{Major: 0, Minor: 1, Patch: 0}, false},
+		{"v10.20.30", Version{Major: 10, Minor: 20, Patch: 30}, false},
+		{"v1.2.3-beta", Version{Major: 1, Minor: 2, Patch: 3, Prerelease: "beta"}, false},
+		{"v0.2.0-mybranch.3", Version{Major: 0, Minor: 2, Patch: 0, Prerelease: "mybranch.3"}, false},
 		{"1.2.3", Version{}, true},
 		{"v1.2", Version{}, true},
-		{"v1.2.3-beta", Version{}, true},
 		{"", Version{}, true},
 	}
 	for _, tt := range tests {
@@ -29,9 +30,9 @@ func TestParse(t *testing.T) {
 }
 
 func TestBumpPatch(t *testing.T) {
-	v := Version{0, 1, 5}
+	v := Version{Major: 0, Minor: 1, Patch: 5}
 	got := v.BumpPatch()
-	want := Version{0, 1, 6}
+	want := Version{Major: 0, Minor: 1, Patch: 6}
 	if got != want {
 		t.Errorf("BumpPatch() = %v, want %v", got, want)
 	}
@@ -43,7 +44,19 @@ func TestLatestFromTags(t *testing.T) {
 	if !found {
 		t.Fatal("expected to find a version")
 	}
-	want := Version{0, 3, 0}
+	want := Version{Major: 0, Minor: 3, Patch: 0}
+	if got != want {
+		t.Errorf("LatestFromTags() = %v, want %v", got, want)
+	}
+}
+
+func TestLatestFromTagsIgnoresPrerelease(t *testing.T) {
+	tags := []string{"v0.1.0", "v0.2.0-beta.1", "v0.1.5"}
+	got, found := LatestFromTags(tags)
+	if !found {
+		t.Fatal("expected to find a version")
+	}
+	want := Version{Major: 0, Minor: 1, Patch: 5}
 	if got != want {
 		t.Errorf("LatestFromTags() = %v, want %v", got, want)
 	}
@@ -57,11 +70,113 @@ func TestLatestFromTagsEmpty(t *testing.T) {
 }
 
 func TestString(t *testing.T) {
-	v := Version{1, 2, 3}
+	v := Version{Major: 1, Minor: 2, Patch: 3}
 	if got := v.String(); got != "v1.2.3" {
 		t.Errorf("String() = %q, want %q", got, "v1.2.3")
 	}
 	if got := v.TagString(); got != "1.2.3" {
 		t.Errorf("TagString() = %q, want %q", got, "1.2.3")
+	}
+}
+
+func TestStringPrerelease(t *testing.T) {
+	v := Version{Major: 0, Minor: 2, Patch: 0, Prerelease: "mybranch.1"}
+	if got := v.String(); got != "v0.2.0-mybranch.1" {
+		t.Errorf("String() = %q, want %q", got, "v0.2.0-mybranch.1")
+	}
+	if got := v.TagString(); got != "0.2.0-mybranch.1" {
+		t.Errorf("TagString() = %q, want %q", got, "0.2.0-mybranch.1")
+	}
+}
+
+func TestLessPrerelease(t *testing.T) {
+	release := Version{Major: 1, Minor: 0, Patch: 0}
+	prerelease := Version{Major: 1, Minor: 0, Patch: 0, Prerelease: "beta.1"}
+
+	if !prerelease.Less(release) {
+		t.Error("pre-release should be less than release")
+	}
+	if release.Less(prerelease) {
+		t.Error("release should not be less than pre-release")
+	}
+}
+
+func TestParsePrerelease(t *testing.T) {
+	tests := []struct {
+		input    string
+		wantName string
+		wantIter int
+	}{
+		{"mybranch.3", "mybranch", 3},
+		{"fix-foo.1", "fix-foo", 1},
+		{"beta", "beta", 0},
+		{"my.branch.2", "my.branch", 2},
+	}
+	for _, tt := range tests {
+		name, iter := ParsePrerelease(tt.input)
+		if name != tt.wantName || iter != tt.wantIter {
+			t.Errorf("ParsePrerelease(%q) = (%q, %d), want (%q, %d)", tt.input, name, iter, tt.wantName, tt.wantIter)
+		}
+	}
+}
+
+func TestLatestPrereleaseFromTags(t *testing.T) {
+	tags := []string{"v0.2.0-mybranch.1", "v0.2.0-mybranch.2", "v0.2.0-other.1", "v0.3.0"}
+	base := Version{Major: 0, Minor: 2, Patch: 0}
+
+	got, found := LatestPrereleaseFromTags(tags, base, "mybranch")
+	if !found {
+		t.Fatal("expected to find a pre-release version")
+	}
+	want := Version{Major: 0, Minor: 2, Patch: 0, Prerelease: "mybranch.2"}
+	if got != want {
+		t.Errorf("LatestPrereleaseFromTags() = %v, want %v", got, want)
+	}
+}
+
+func TestLatestPrereleaseFromTagsNotFound(t *testing.T) {
+	tags := []string{"v0.2.0", "v0.3.0"}
+	base := Version{Major: 0, Minor: 2, Patch: 0}
+	_, found := LatestPrereleaseFromTags(tags, base, "mybranch")
+	if found {
+		t.Error("expected not found")
+	}
+}
+
+func TestBumpPrerelease(t *testing.T) {
+	base := Version{Major: 0, Minor: 2, Patch: 0}
+	tags := []string{"v0.2.0-mybranch.1", "v0.2.0-mybranch.2"}
+
+	got := base.BumpPrerelease("mybranch", tags)
+	want := Version{Major: 0, Minor: 2, Patch: 0, Prerelease: "mybranch.3"}
+	if got != want {
+		t.Errorf("BumpPrerelease() = %v, want %v", got, want)
+	}
+}
+
+func TestBumpPrereleaseFirst(t *testing.T) {
+	base := Version{Major: 0, Minor: 2, Patch: 0}
+	got := base.BumpPrerelease("mybranch", nil)
+	want := Version{Major: 0, Minor: 2, Patch: 0, Prerelease: "mybranch.1"}
+	if got != want {
+		t.Errorf("BumpPrerelease() = %v, want %v", got, want)
+	}
+}
+
+func TestWithPrerelease(t *testing.T) {
+	v := Version{Major: 1, Minor: 0, Patch: 0}
+	got := v.WithPrerelease("beta.1")
+	want := Version{Major: 1, Minor: 0, Patch: 0, Prerelease: "beta.1"}
+	if got != want {
+		t.Errorf("WithPrerelease() = %v, want %v", got, want)
+	}
+}
+
+func TestBase(t *testing.T) {
+	v := Version{Major: 1, Minor: 0, Patch: 0, Prerelease: "beta.1"}
+	got := v.Base()
+	want := Version{Major: 1, Minor: 0, Patch: 0}
+	if got != want {
+		t.Errorf("Base() = %v, want %v", got, want)
 	}
 }

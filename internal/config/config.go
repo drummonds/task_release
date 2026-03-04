@@ -22,6 +22,7 @@ type Config struct {
 	GoreleaserConfig string        `yaml:"goreleaser_config"`
 	Forge            string        `yaml:"forge"`
 	Cleanup          CleanupConfig `yaml:"cleanup"`
+	Fork             *bool         `yaml:"fork"`
 	Install          *bool         `yaml:"install"`
 	InstallRetries   int           `yaml:"install_retries"`
 	PagesBuild       []string      `yaml:"pages_build"`

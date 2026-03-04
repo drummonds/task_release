@@ -28,6 +28,8 @@ type Plan struct {
 	HasReleaseInstall bool
 	Forge             forge.Forge
 	HasForgeCLI       bool
+	IsFork            bool
+	ForkBranch        string
 
 	// User decisions
 	DoGitAdd     bool

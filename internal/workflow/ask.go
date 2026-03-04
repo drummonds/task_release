@@ -20,6 +20,9 @@ func Ask(ctx *Context) error {
 	if len(p.Retracted) > 0 {
 		fmt.Printf("  Retracted versions: %v\n", p.Retracted)
 	}
+	if p.IsFork {
+		fmt.Printf("  Fork detected (branch: %s) — using pre-release versioning\n", p.ForkBranch)
+	}
 	fmt.Printf("  Suggested: %s\n", p.SuggestedVersion)
 
 	if p.GitDirty {

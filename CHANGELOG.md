@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.1.25] - 2026-03-04
+
+ - Adding custom install process
+
 ## [0.1.24] - 2026-03-03
 
  - Adding remote check

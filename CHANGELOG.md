@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.1.27] - 2026-03-05
+
+ - Adding release workflow docs and worktree commands
+
 ## [0.1.26] - 2026-03-04
 
  - Adding fork releases and adding documentation about releases

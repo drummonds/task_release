@@ -251,6 +251,7 @@ func runMd2html(args []string) {
 	dst := fs.String("dst", "docs/internal", "destination HTML directory")
 	label := fs.String("label", "Internal Docs", "breadcrumb label for this doc set")
 	project := fs.String("project", "", "project name (auto-detected from go.mod if empty)")
+	file := fs.String("file", "", "single markdown file to convert (overrides --src)")
 	fs.Parse(args)
 
 	cfg := md2html.Config{
@@ -258,6 +259,7 @@ func runMd2html(args []string) {
 		Dst:     *dst,
 		Label:   *label,
 		Project: *project,
+		File:    *file,
 	}
 	if err := md2html.Run(cfg); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)

@@ -26,6 +26,7 @@ type Config struct {
 	Dst     string // destination HTML directory
 	Label   string // breadcrumb label for this doc set
 	Project string // project name for breadcrumb root
+	File    string // single file to convert (overrides Src directory scan)
 }
 
 type breadcrumb struct {
@@ -64,6 +65,16 @@ func Run(cfg Config) error {
 
 	if err := os.MkdirAll(cfg.Dst, 0o755); err != nil {
 		return fmt.Errorf("mkdir %s: %w", cfg.Dst, err)
+	}
+
+	// Single file mode
+	if cfg.File != "" {
+		cfg.Src = filepath.Dir(cfg.File)
+		name := filepath.Base(cfg.File)
+		if err := convertFile(md, tmpl, cfg, name); err != nil {
+			return fmt.Errorf("convert %s: %w", name, err)
+		}
+		return nil
 	}
 
 	entries, err := os.ReadDir(cfg.Src)

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>task-plus - task-plus</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <style>
+        pre {
+            background-color: #2b2b2b;
+            color: #f8f8f2;
+            padding: 1.25em 1.5em;
+            overflow-x: auto;
+        }
+        pre code {
+            color: inherit;
+            background: none;
+            padding: 0;
+            font-size: 0.875em;
+        }
+        code {
+            background-color: #f5f5f5;
+            color: #e83e8c;
+            padding: 0.125em 0.375em;
+            border-radius: 3px;
+        }
+        pre.mermaid {
+            background-color: #ffffff;
+            color: #333;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <section class="section">
+        <div class="container">
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+                <ul>
+                    <li><a href="../index.html">task-plus</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">Internal Docs</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">task-plus</a></li>
+                </ul>
+            </nav>
+
+            <div class="content">
+                <h1 id="task-plus">task-plus</h1>
+<p>Go CLI tool that standardizes common development workflows across repositories. Subcommand architecture — start with <code>release</code>, more commands to come.</p>
+<h2 id="install">Install</h2>
+<pre><code class="language-bash">go install github.com/drummonds/task-plus/cmd/task-plus@latest
+</code></pre>
+<h2 id="commands">Commands</h2>
+<h3 id="task-plus-release"><code>task-plus release</code></h3>
+<p>Interactive release workflow. Replaces duplicated <code>task release</code> Taskfile patterns.</p>
+<pre><code class="language-bash">task-plus release
+task-plus release --dry-run
+task-plus release --yes --dir /path/to/project
+</code></pre>
+<p>Flags:</p>
+<ul>
+<li><code>--dry-run</code> — show what would happen without making changes</li>
+<li><code>--yes</code> — auto-confirm all prompts</li>
+<li><code>--dir &lt;path&gt;</code> — project directory (default: <code>.</code>)</li>
+</ul>
+<p><strong>Taskfile guard:</strong> If the project's <code>Taskfile.yml</code> contains a <code>release:</code> task, <code>task-plus release</code> refuses to run (to avoid conflict). Remove the Taskfile release task and use <code>task-plus release</code> directly.</p>
+<h4 id="release-workflow">Release Workflow</h4>
+<ol>
+<li>Run checks (e.g. <code>task check</code>)</li>
+<li>Show git status</li>
+<li>Git add / commit (if dirty)</li>
+<li>Detect version (latest tag + patch bump)</li>
+<li>Update CHANGELOG.md</li>
+<li>Git tag</li>
+<li>WASM build (if configured)</li>
+<li>Git push (branch + tags)</li>
+<li>Goreleaser (if binary project)</li>
+<li>Cleanup old GitHub releases</li>
+<li>Local install</li>
+</ol>
+<h3 id="task-plus-pages"><code>task-plus pages</code></h3>
+<p>Serve the <code>docs/</code> directory over HTTP for local preview.</p>
+<pre><code class="language-bash">task-plus pages
+task-plus pages --port 3000 --dir /path/to/project
+</code></pre>
+<p>Flags:</p>
+<ul>
+<li><code>--port &lt;n&gt;</code> — HTTP port (default: <code>8080</code>)</li>
+<li><code>--dir &lt;path&gt;</code> — project directory (default: <code>.</code>)</li>
+</ul>
+<h3 id="global-flags">Global Flags</h3>
+<ul>
+<li><code>-a</code> — list available commands</li>
+<li><code>--version</code> — print version</li>
+</ul>
+<h2 id="config">Config</h2>
+<p>Optional <code>task-plus.yml</code> in project root:</p>
+<pre><code class="language-yaml">type: library           # or &quot;binary&quot; (auto-detected from .goreleaser.yaml)
+check: [task check]     # commands to run first
+changelog_format: keepachangelog  # or &quot;simple&quot;
+wasm: []                # optional WASM build commands
+goreleaser_config: .goreleaser.yaml
+install: true           # auto-run &quot;go install&quot; (skip prompt; omit to be asked)
+cleanup:
+  keep_patches: 2       # per minor version
+  keep_minors: 5
+</code></pre>
+<p>All fields optional — sensible defaults are auto-detected.</p>
+
+            </div>
+        </div>
+    </section>
+</body>
+</html>

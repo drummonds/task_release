@@ -37,7 +37,7 @@
             <nav class="breadcrumb" aria-label="breadcrumbs">
                 <ul>
                     <li><a href="../index.html">task-plus</a></li>
-                    <li class="is-active"><a href="#" aria-current="page">Docs</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">Internal Docs</a></li>
                     <li class="is-active"><a href="#" aria-current="page">Release Workflow</a></li>
                 </ul>
             </nav>
@@ -64,8 +64,11 @@
     M -->|Yes| N[Goreleaser]
     M -->|No| O[Cleanup]
     N --> O
-    O --> P[Install]
-    P --> Q[Done]
+    O --> P{Fork?}
+    P -->|Yes| Q[Skip Install]
+    P -->|No| R[Install]
+    Q --> S[Done]
+    R --> S
 </pre>
 <h2 id="phases">Phases</h2>
 <h3 id="1-precheck">1. Precheck</h3>

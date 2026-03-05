@@ -23,8 +23,11 @@ flowchart TD
     M -->|Yes| N[Goreleaser]
     M -->|No| O[Cleanup]
     N --> O
-    O --> P[Install]
-    P --> Q[Done]
+    O --> P{Fork?}
+    P -->|Yes| Q[Skip Install]
+    P -->|No| R[Install]
+    Q --> S[Done]
+    R --> S
 ```
 
 ## Phases

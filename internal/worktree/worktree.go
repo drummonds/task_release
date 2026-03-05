@@ -2,11 +2,19 @@
 package worktree
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
+	"syscall"
+	"time"
+
+	"github.com/drummonds/task-plus/internal/agent"
+	"github.com/drummonds/task-plus/internal/dashboard"
 )
 
 const settingsJSON = `{
@@ -30,7 +38,7 @@ var sandboxStubs = []string{
 // Run dispatches wt sub-subcommands.
 func Run(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: task-plus wt <start|review|merge|clean|list|--init>")
+		return fmt.Errorf("usage: task-plus wt <start|review|merge|clean|list|dashboard|--init>")
 	}
 
 	switch args[0] {
@@ -44,11 +52,13 @@ func Run(args []string) error {
 		return runClean(args[1:])
 	case "list":
 		return runList(args[1:])
+	case "dashboard":
+		return dashboard.Run(args[1:])
 	case "--init":
 		printInit()
 		return nil
 	default:
-		return fmt.Errorf("unknown wt command: %s\nUsage: task-plus wt <start|review|merge|clean|list|--init>", args[0])
+		return fmt.Errorf("unknown wt command: %s\nUsage: task-plus wt <start|review|merge|clean|list|dashboard|--init>", args[0])
 	}
 }
 
@@ -65,43 +75,127 @@ func runStart(args []string) error {
 
 	wtPath := worktreePath(dir, projName, task)
 	branch := "task/" + task
+	registryKey := projName + "/" + task
 
-	// Create worktree
-	fmt.Printf("Creating worktree at %s on branch %s\n", wtPath, branch)
-	if err := git(dir, "worktree", "add", wtPath, "-b", branch); err != nil {
-		return fmt.Errorf("git worktree add: %w", err)
+	// Clean stale agents
+	if removed, err := agent.CleanStale(); err == nil && len(removed) > 0 {
+		for _, k := range removed {
+			fmt.Printf("Cleaned stale agent: %s\n", k)
+		}
 	}
 
-	// Write .claude/settings.json
-	claudeDir := filepath.Join(wtPath, ".claude")
-	if err := os.MkdirAll(claudeDir, 0755); err != nil {
-		return fmt.Errorf("mkdir .claude: %w", err)
-	}
-	if err := os.WriteFile(filepath.Join(claudeDir, "settings.json"), []byte(settingsJSON), 0644); err != nil {
-		return fmt.Errorf("write settings.json: %w", err)
+	// Resume or create worktree
+	if info, err := os.Stat(wtPath); err == nil && info.IsDir() {
+		fmt.Printf("Resuming existing worktree at %s\n", wtPath)
+		// Write settings only if missing
+		settingsPath := filepath.Join(wtPath, ".claude", "settings.json")
+		if _, err := os.Stat(settingsPath); os.IsNotExist(err) {
+			claudeDir := filepath.Join(wtPath, ".claude")
+			if err := os.MkdirAll(claudeDir, 0755); err != nil {
+				return fmt.Errorf("mkdir .claude: %w", err)
+			}
+			if err := os.WriteFile(settingsPath, []byte(settingsJSON), 0644); err != nil {
+				return fmt.Errorf("write settings.json: %w", err)
+			}
+		}
+	} else {
+		// Create worktree
+		fmt.Printf("Creating worktree at %s on branch %s\n", wtPath, branch)
+		if err := git(dir, "worktree", "add", wtPath, "-b", branch); err != nil {
+			return fmt.Errorf("git worktree add: %w", err)
+		}
+
+		// Write .claude/settings.json
+		claudeDir := filepath.Join(wtPath, ".claude")
+		if err := os.MkdirAll(claudeDir, 0755); err != nil {
+			return fmt.Errorf("mkdir .claude: %w", err)
+		}
+		if err := os.WriteFile(filepath.Join(claudeDir, "settings.json"), []byte(settingsJSON), 0644); err != nil {
+			return fmt.Errorf("write settings.json: %w", err)
+		}
+
+		// Add ignores to worktree's git exclude (avoids modifying tracked .gitignore)
+		if err := addToGitExclude(wtPath, append([]string{".claude/settings.json"}, sandboxStubs...)); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: could not update git exclude: %v\n", err)
+		}
+
+		// Also ensure .claude/settings.json is in the main repo's .gitignore
+		addToGitignore(dir, []string{".claude/settings.json"})
 	}
 
-	// Add ignores to worktree's git exclude (avoids modifying tracked .gitignore)
-	if err := addToGitExclude(wtPath, append([]string{".claude/settings.json"}, sandboxStubs...)); err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: could not update git exclude: %v\n", err)
+	// Start HTTP status server
+	startTime := time.Now()
+	var claudeRunning atomic.Bool
+	entry := agent.AgentEntry{
+		PID:          os.Getpid(),
+		WorktreePath: wtPath,
+		Branch:       branch,
+		Project:      projName,
+		StartTime:    startTime,
 	}
 
-	// Also ensure .claude/settings.json is in the main repo's .gitignore
-	addToGitignore(dir, []string{".claude/settings.json"})
+	port, srv, err := agent.StartStatusServer(entry, &claudeRunning)
+	if err != nil {
+		return fmt.Errorf("start status server: %w", err)
+	}
+	entry.Port = port
+
+	// Register agent
+	if err := agent.Register(registryKey, entry); err != nil {
+		return fmt.Errorf("register agent: %w", err)
+	}
+	fmt.Printf("Agent registered: %s (port %d)\n", registryKey, port)
+
+	// Signal handling for clean shutdown
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
 	// Run claude
+	var claudeErr error
 	if spec != "" {
 		fmt.Printf("Running claude in %s\n", wtPath)
+		claudeRunning.Store(true)
+
 		c := exec.Command("claude", spec)
 		c.Dir = wtPath
 		c.Stdout = os.Stdout
 		c.Stderr = os.Stderr
 		c.Stdin = os.Stdin
-		if err := c.Run(); err != nil {
-			return fmt.Errorf("claude: %w", err)
+
+		doneCh := make(chan error, 1)
+		go func() {
+			doneCh <- c.Run()
+		}()
+
+		select {
+		case claudeErr = <-doneCh:
+			// Normal exit
+		case sig := <-sigCh:
+			// Forward signal to claude process
+			if c.Process != nil {
+				c.Process.Signal(sig)
+			}
+			// Wait for it to finish
+			claudeErr = <-doneCh
 		}
+		claudeRunning.Store(false)
+	} else {
+		// No spec: wait for signal
+		fmt.Println("No --spec provided; agent running. Press Ctrl+C to stop.")
+		<-sigCh
 	}
 
+	// Cleanup
+	signal.Stop(sigCh)
+	srv.Shutdown(context.Background())
+	if err := agent.Deregister(registryKey); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: deregister: %v\n", err)
+	}
+	fmt.Printf("Agent stopped: %s\n", registryKey)
+
+	if claudeErr != nil {
+		return fmt.Errorf("claude: %w", claudeErr)
+	}
 	return nil
 }
 
@@ -356,6 +450,7 @@ func printInit() {
 #   task wt:merge TASK=my-feature
 #   task wt:clean TASK=my-feature
 #   task wt:list
+#   task wt:dashboard
 
   wt:start:
     desc: Create a worktree and run Claude in it
@@ -389,5 +484,10 @@ func printInit() {
     desc: List active worktrees
     cmds:
       - task-plus wt list
+
+  wt:dashboard:
+    desc: Show agent dashboard (web UI; use --term for terminal)
+    cmds:
+      - task-plus wt dashboard
 `)
 }

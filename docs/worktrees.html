@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Worktrees for Claude Development - task-plus</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <style>
+        pre {
+            background-color: #2b2b2b;
+            color: #f8f8f2;
+            padding: 1.25em 1.5em;
+            overflow-x: auto;
+        }
+        pre code {
+            color: inherit;
+            background: none;
+            padding: 0;
+            font-size: 0.875em;
+        }
+        code {
+            background-color: #f5f5f5;
+            color: #e83e8c;
+            padding: 0.125em 0.375em;
+            border-radius: 3px;
+        }
+        pre.mermaid {
+            background-color: #ffffff;
+            color: #333;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <section class="section">
+        <div class="container">
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+                <ul>
+                    <li><a href="../index.html">task-plus</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">Docs</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">Worktrees for Claude Development</a></li>
+                </ul>
+            </nav>
+
+            <div class="content">
+                <h1 id="worktrees-for-claude-development">Worktrees for Claude Development</h1>
+<p>task-plus manages git worktrees so you can run multiple Claude agents in parallel, each in its own isolated branch.</p>
+<h2 id="quick-start">Quick Start</h2>
+<pre><code class="language-bash"># One-off: generate Taskfile snippets
+task-plus wt --init
+
+# Start a worktree with a Claude task
+task-plus wt start --task=add-login --spec=&quot;implement the login page&quot;
+
+# Or without --spec to get an agent that waits for Ctrl+C
+task-plus wt start --task=add-login
+
+# Monitor all running agents
+task-plus wt dashboard          # web UI (default)
+task-plus wt dashboard --term   # terminal table
+</code></pre>
+<h2 id="how-it-works">How It Works</h2>
+<pre class="mermaid">flowchart TD
+    A[wt start] --> B{Worktree exists?}
+    B -->|No| C[git worktree add]
+    B -->|Yes| D[Resume]
+    C --> E[Write .claude/settings.json]
+    D --> F{settings.json exists?}
+    F -->|No| E
+    F -->|Yes| G[Start status server]
+    E --> G
+    G --> H[Register in agents.json]
+    H --> I{--spec provided?}
+    I -->|Yes| J[Run claude]
+    I -->|No| K[Wait for Ctrl+C]
+    J --> L[Deregister + shutdown]
+    K --> L
+</pre>
+<h2 id="commands">Commands</h2>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>wt start --task=NAME [--spec=&quot;PROMPT&quot;]</code></td>
+<td>Create or resume a worktree, optionally run Claude</td>
+</tr>
+<tr>
+<td><code>wt review --task=NAME</code></td>
+<td>Show diff between main and the task branch</td>
+</tr>
+<tr>
+<td><code>wt merge --task=NAME</code></td>
+<td>Merge task branch into current branch, remove worktree</td>
+</tr>
+<tr>
+<td><code>wt clean --task=NAME</code></td>
+<td>Force-remove worktree and delete branch</td>
+</tr>
+<tr>
+<td><code>wt list</code></td>
+<td>List all git worktrees</td>
+</tr>
+<tr>
+<td><code>wt dashboard [--term]</code></td>
+<td>Live dashboard of running agents</td>
+</tr>
+<tr>
+<td><code>wt --init</code></td>
+<td>Print Taskfile.yml snippets for all wt commands</td>
+</tr>
+</tbody>
+</table>
+<h2 id="agent-lifecycle">Agent Lifecycle</h2>
+<p>Each <code>wt start</code> registers itself in <code>~/.config/task-plus/agents.json</code> with:</p>
+<ul>
+<li>HTTP port (random, serves <code>/status</code>)</li>
+<li>PID, worktree path, branch, project name, start time</li>
+</ul>
+<p>On exit (normal or Ctrl+C), the agent:</p>
+<ol>
+<li>Shuts down the HTTP status server</li>
+<li>Deregisters from agents.json</li>
+</ol>
+<p>Stale entries (dead PIDs) are cleaned automatically on every <code>wt start</code>.</p>
+<h2 id="resume-support">Resume Support</h2>
+<p>If you run <code>wt start --task=add-login</code> and the worktree directory already exists, it resumes instead of failing with &quot;branch already exists&quot;. This handles:</p>
+<ul>
+<li>Machine reboots</li>
+<li>Interrupted sessions</li>
+<li>Re-running a task after reviewing changes</li>
+</ul>
+<h2 id="dashboard">Dashboard</h2>
+<p>The dashboard polls each registered agent's <code>/status</code> endpoint every 2 seconds.</p>
+<p><strong>Web mode</strong> (default, port 8091): Bulma-styled table with auto-refresh, powered by lofigui.</p>
+<p><strong>Terminal mode</strong> (<code>--term</code>): ANSI table that clears and redraws. Ctrl+C exits.</p>
+<p>Both modes show: task key, branch, status (Running/Idle/Offline), last commit subject, uptime, and port.</p>
+<h2 id="directory-layout">Directory Layout</h2>
+<p>Worktrees are placed alongside the main repo:</p>
+<pre><code>~/projects/
+  my-app/              # main repo
+  my-app-add-login/    # worktree for task &quot;add-login&quot;
+  my-app-fix-bug/      # worktree for task &quot;fix-bug&quot;
+</code></pre>
+<p>Each worktree gets a <code>.claude/settings.json</code> with sandbox config (denies <code>~/.ssh</code> and <code>~/.aws</code> reads). Sandbox stub files are excluded via <code>.git/info/exclude</code>.</p>
+<h2 id="taskfile-integration">Taskfile Integration</h2>
+<p>Run <code>task-plus wt --init</code> to get copy-paste Taskfile snippets:</p>
+<pre><code class="language-bash">task wt:start TASK=my-feature SPEC=&quot;implement the login page&quot;
+task wt:review TASK=my-feature
+task wt:merge TASK=my-feature
+task wt:clean TASK=my-feature
+task wt:list
+task wt:dashboard
+</code></pre>
+
+            </div>
+        </div>
+    </section>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+</body>
+</html>

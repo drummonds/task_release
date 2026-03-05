@@ -24,6 +24,11 @@
             padding: 0.125em 0.375em;
             border-radius: 3px;
         }
+        pre.mermaid {
+            background-color: #ffffff;
+            color: #333;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -32,7 +37,7 @@
             <nav class="breadcrumb" aria-label="breadcrumbs">
                 <ul>
                     <li><a href="../index.html">task-plus</a></li>
-                    <li class="is-active"><a href="#" aria-current="page">Internal Docs</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">Docs</a></li>
                     <li class="is-active"><a href="#" aria-current="page">Release Workflow</a></li>
                 </ul>
             </nav>
@@ -41,27 +46,27 @@
                 <h1 id="release-workflow">Release Workflow</h1>
 <p>task-plus automates the release process for Go projects. The workflow runs through five phases: Precheck, Gather, Ask, Check, and Execute.</p>
 <h2 id="flowchart">Flowchart</h2>
-<pre><code class="language-mermaid">flowchart TD
-    A[Start] --&gt; B[Precheck]
-    B --&gt; C[Gather State]
-    C --&gt; D{Git Dirty?}
-    D --&gt;|Yes| E[Add + Commit]
-    D --&gt;|No| F[Ask Version]
-    E --&gt; F
-    F --&gt; G[Run Checks]
-    G --&gt; H[Update CHANGELOG]
-    H --&gt; I[Git Tag]
-    I --&gt; J{WASM?}
-    J --&gt;|Yes| K[Build WASM + Re-tag]
-    J --&gt;|No| L[Git Push]
-    K --&gt; L
-    L --&gt; M{Binary?}
-    M --&gt;|Yes| N[Goreleaser]
-    M --&gt;|No| O[Cleanup]
-    N --&gt; O
-    O --&gt; P[Install]
-    P --&gt; Q[Done]
-</code></pre>
+<pre class="mermaid">flowchart TD
+    A[Start] --> B[Precheck]
+    B --> C[Gather State]
+    C --> D{Git Dirty?}
+    D -->|Yes| E[Add + Commit]
+    D -->|No| F[Ask Version]
+    E --> F
+    F --> G[Run Checks]
+    G --> H[Update CHANGELOG]
+    H --> I[Git Tag]
+    I --> J{WASM?}
+    J -->|Yes| K[Build WASM + Re-tag]
+    J -->|No| L[Git Push]
+    K --> L
+    L --> M{Binary?}
+    M -->|Yes| N[Goreleaser]
+    M -->|No| O[Cleanup]
+    N --> O
+    O --> P[Install]
+    P --> Q[Done]
+</pre>
 <h2 id="phases">Phases</h2>
 <h3 id="1-precheck">1. Precheck</h3>
 <p>Runs any configured precheck commands (e.g. <code>task precheck</code>). Fails fast before user interaction.</p>
@@ -103,5 +108,9 @@
             </div>
         </div>
     </section>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true });
+    </script>
 </body>
 </html>

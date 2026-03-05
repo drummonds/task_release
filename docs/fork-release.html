@@ -24,6 +24,11 @@
             padding: 0.125em 0.375em;
             border-radius: 3px;
         }
+        pre.mermaid {
+            background-color: #ffffff;
+            color: #333;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -32,7 +37,7 @@
             <nav class="breadcrumb" aria-label="breadcrumbs">
                 <ul>
                     <li><a href="../index.html">task-plus</a></li>
-                    <li class="is-active"><a href="#" aria-current="page">Internal Docs</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">Docs</a></li>
                     <li class="is-active"><a href="#" aria-current="page">Fork Release</a></li>
                 </ul>
             </nav>
@@ -41,21 +46,21 @@
                 <h1 id="fork-release">Fork Release</h1>
 <p>When working with forked Go projects, task-plus supports pre-release versioning to distinguish fork builds from upstream releases.</p>
 <h2 id="flowchart">Flowchart</h2>
-<pre><code class="language-mermaid">flowchart TD
-    A[Start] --&gt; B[Detect Fork]
-    B --&gt; C{go.mod != remote?}
-    C --&gt;|Yes: Fork| D[Get Branch Name]
-    C --&gt;|No: Normal| E[Standard Release]
-    D --&gt; F[Find Latest Pre-release Tag]
-    F --&gt; G[Suggest v0.2.0-branch.N+1]
-    G --&gt; H[User Confirms Version]
-    H --&gt; I[Tag + Push]
-    I --&gt; J{Has Goreleaser?}
-    J --&gt;|Yes| K[Goreleaser Release]
-    J --&gt;|No| L[Skip Install]
-    K --&gt; L
-    L --&gt; M[Done]
-</code></pre>
+<pre class="mermaid">flowchart TD
+    A[Start] --> B[Detect Fork]
+    B --> C{go.mod != remote?}
+    C -->|Yes: Fork| D[Get Branch Name]
+    C -->|No: Normal| E[Standard Release]
+    D --> F[Find Latest Pre-release Tag]
+    F --> G[Suggest v0.2.0-branch.N+1]
+    G --> H[User Confirms Version]
+    H --> I[Tag + Push]
+    I --> J{Has Goreleaser?}
+    J -->|Yes| K[Goreleaser Release]
+    J -->|No| L[Skip Install]
+    K --> L
+    L --> M[Done]
+</pre>
 <h2 id="how-it-works">How It Works</h2>
 <h3 id="fork-detection">Fork Detection</h3>
 <p>task-plus compares the <code>module</code> path in <code>go.mod</code> with the git remote origin URL. If they differ, the project is a fork. For example:</p>
@@ -87,5 +92,9 @@ v0.2.0-main.3
             </div>
         </div>
     </section>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true });
+    </script>
 </body>
 </html>

@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/yuin/goldmark"
@@ -37,6 +38,7 @@ type pageData struct {
 	Project     string
 	Content     template.HTML
 	Breadcrumbs []breadcrumb
+	HasMermaid  bool
 }
 
 // Run converts all .md files in Src to .html files in Dst.
@@ -93,16 +95,20 @@ func convertFile(md goldmark.Markdown, tmpl *template.Template, cfg Config, name
 		return fmt.Errorf("goldmark: %w", err)
 	}
 
+	rendered := replaceMermaidBlocks(buf.String())
+	hasMermaid := mermaidBlockRe.MatchString(buf.String())
+
 	outName := strings.TrimSuffix(name, ".md") + ".html"
 	data := pageData{
 		Title:   title,
 		Project: cfg.Project,
-		Content: template.HTML(buf.String()),
+		Content: template.HTML(rendered),
 		Breadcrumbs: []breadcrumb{
 			{Label: cfg.Project, URL: "../index.html"},
 			{Label: cfg.Label, URL: ""},
 			{Label: title, URL: ""},
 		},
+		HasMermaid: hasMermaid,
 	}
 
 	var out bytes.Buffer
@@ -126,6 +132,28 @@ func extractTitle(content []byte, fallback string) string {
 		}
 	}
 	return strings.TrimSuffix(fallback, ".md")
+}
+
+// mermaidBlockRe matches <pre><code class="language-mermaid">...</code></pre> blocks
+// produced by goldmark from ```mermaid fenced code.
+var mermaidBlockRe = regexp.MustCompile(`(?s)<pre><code class="language-mermaid">(.*?)</code></pre>`)
+
+// htmlEntityDecoder restores HTML entities back to plain text for mermaid.js.
+var htmlEntityDecoder = strings.NewReplacer(
+	"&gt;", ">", "&lt;", "<", "&amp;", "&", "&quot;", `"`,
+)
+
+// replaceMermaidBlocks converts goldmark's mermaid code blocks into
+// <pre class="mermaid"> elements for client-side rendering by mermaid.js.
+func replaceMermaidBlocks(htmlStr string) string {
+	return mermaidBlockRe.ReplaceAllStringFunc(htmlStr, func(match string) string {
+		subs := mermaidBlockRe.FindStringSubmatch(match)
+		if len(subs) < 2 {
+			return match
+		}
+		src := htmlEntityDecoder.Replace(subs[1])
+		return `<pre class="mermaid">` + src + `</pre>`
+	})
 }
 
 // detectProject parses go.mod in CWD to extract the last path element of the module name.

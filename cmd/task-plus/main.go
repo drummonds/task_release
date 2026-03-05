@@ -40,7 +40,7 @@ var commands = []struct {
 	{"release:version-update", "Scaffold a Taskfile task to update version strings (--init)"},
 	{"pages", "Serve docs/ directory over HTTP"},
 	{"md2html", "Convert markdown files to Bulma-styled HTML"},
-	{"wt", "Manage git worktrees for Claude tasks (start, review, merge, clean, list)"},
+	{"wt", "Manage git worktrees for Claude tasks (start, review, merge, clean, list, dashboard)"},
 	{"self", "Manage task-plus itself (update, etc.)"},
 }
 

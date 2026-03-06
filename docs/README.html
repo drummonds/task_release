@@ -45,6 +45,7 @@
             <div class="content">
                 <h1 id="task-plus">task-plus</h1>
 <p>Go CLI tool that standardizes common development workflows across repositories. Subcommand architecture — start with <code>release</code>, more commands to come.</p>
+<p>Try <a href="https://h3-task-plus.statichost.page/">https://h3-task-plus.statichost.page/</a> for documentation.</p>
 <h2 id="install">Install</h2>
 <pre><code class="language-bash">go install github.com/drummonds/task-plus/cmd/task-plus@latest
 </code></pre>
@@ -93,11 +94,12 @@ task-plus pages --port 3000 --dir /path/to/project
 </ul>
 <h3 id="global-flags">Global Flags</h3>
 <ul>
+<li><code>--init</code> — create a default <code>task-plus.yml</code> config file (statichost.eu pre-configured)</li>
 <li><code>-a</code> — list available commands</li>
 <li><code>--version</code> — print version</li>
 </ul>
 <h2 id="config">Config</h2>
-<p>Optional <code>task-plus.yml</code> in project root:</p>
+<p>Optional <code>task-plus.yml</code> in project root (generate with <code>task-plus --init</code>):</p>
 <pre><code class="language-yaml">type: library           # or &quot;binary&quot; (auto-detected from .goreleaser.yaml)
 check: [task check]     # commands to run first
 changelog_format: keepachangelog  # or &quot;simple&quot;

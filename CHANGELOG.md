@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.1.35] - 2026-03-06
+
+ - Adding forge support for codeberge
+
 ## [0.1.34] - 2026-03-06
 
  - Adding statichost.eu pages deployment

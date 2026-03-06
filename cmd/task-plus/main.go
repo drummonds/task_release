@@ -9,6 +9,7 @@ import (
 	"runtime/debug"
 	"strings"
 
+	"github.com/drummonds/task-plus/internal/claude"
 	"github.com/drummonds/task-plus/internal/config"
 	"github.com/drummonds/task-plus/internal/md2html"
 	"github.com/drummonds/task-plus/internal/pages"
@@ -40,7 +41,8 @@ var commands = []struct {
 	{"release:version-update", "Scaffold a Taskfile task to update version strings (--init)"},
 	{"pages", "Serve docs/ directory over HTTP"},
 	{"md2html", "Convert markdown files to Bulma-styled HTML"},
-	{"wt", "Manage git worktrees for Claude tasks (start, review, merge, clean, list, dashboard)"},
+	{"wt", "Manage git worktrees (start, agent, review, merge, clean, list, dashboard)"},
+	{"claude", "Run claude --dangerously-skip-permissions (requires worktree + sandbox)"},
 	{"self", "Manage task-plus itself (update, etc.)"},
 }
 
@@ -67,6 +69,8 @@ func main() {
 		runMd2html(os.Args[2:])
 	case "wt":
 		runWt(os.Args[2:])
+	case "claude":
+		runClaude(os.Args[2:])
 	case "self":
 		runSelf(os.Args[2:])
 	default:
@@ -299,6 +303,13 @@ func runReleaseVersionUpdate(args []string) {
 
 func runWt(args []string) {
 	if err := worktree.Run(args); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func runClaude(args []string) {
+	if err := claude.Run(args); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}

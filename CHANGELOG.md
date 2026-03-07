@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.1.38] - 2026-03-07
+
+ - Docs to a second repo
+
 ## [0.1.37] - 2026-03-07
 
  - wt to use single VS code instance

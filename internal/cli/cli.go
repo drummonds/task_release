@@ -9,6 +9,7 @@ import (
 	"runtime/debug"
 	"strings"
 
+	"github.com/drummonds/task-plus/internal/check"
 	"github.com/drummonds/task-plus/internal/claude"
 	"github.com/drummonds/task-plus/internal/config"
 	"github.com/drummonds/task-plus/internal/deploy"
@@ -40,6 +41,7 @@ var commands = []struct {
 	name string
 	desc string
 }{
+	{"check", "Validate task-plus.yml and Taskfile.yml configuration"},
 	{"release", "Interactive release workflow (runs Taskfile post:release if present)"},
 	{"release:version-update", "Scaffold a Taskfile task to update version strings (--init)"},
 	{"repos", "Manage git remotes for release (info, add, remove)"},
@@ -66,6 +68,8 @@ func Main() {
 		fmt.Println("task-plus", appVersion)
 	case "--init":
 		runInit()
+	case "check":
+		runCheck(os.Args[2:])
 	case "release":
 		runRelease(os.Args[2:])
 	case "pages":
@@ -138,6 +142,23 @@ func runInit() {
 	}
 	if err := config.Init(absDir); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func runCheck(args []string) {
+	fs := flag.NewFlagSet("check", flag.ExitOnError)
+	dir := fs.String("dir", ".", "project directory")
+	fs.Parse(args)
+
+	absDir, err := filepath.Abs(*dir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("task-plus check %s\n\n", appVersion)
+	if err := check.Run(absDir); err != nil {
 		os.Exit(1)
 	}
 }

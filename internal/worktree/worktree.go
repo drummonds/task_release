@@ -28,6 +28,29 @@ const settingsJSON = `{
 }
 `
 
+const vscodeTasksJSON = `{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Terminal 1",
+      "type": "shell",
+      "command": "bash",
+      "isBackground": true,
+      "presentation": { "reveal": "always", "panel": "dedicated", "group": "terminals" },
+      "runOptions": { "runOn": "folderOpen" }
+    },
+    {
+      "label": "Terminal 2",
+      "type": "shell",
+      "command": "bash",
+      "isBackground": true,
+      "presentation": { "reveal": "always", "panel": "dedicated", "group": "terminals" },
+      "runOptions": { "runOn": "folderOpen" }
+    }
+  ]
+}
+`
+
 // Sandbox stub files that Claude Code creates as a known bug.
 var sandboxStubs = []string{
 	".bashrc",
@@ -92,10 +115,13 @@ func runStart(args []string) error {
 		if err := writeSettings(wtPath); err != nil {
 			return err
 		}
-		if err := addToGitExclude(wtPath, append([]string{".claude/settings.json"}, sandboxStubs...)); err != nil {
+		if err := writeVSCodeTasks(wtPath); err != nil {
+			return err
+		}
+		if err := addToGitExclude(wtPath, append([]string{".claude/settings.json", ".vscode/tasks.json"}, sandboxStubs...)); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: could not update git exclude: %v\n", err)
 		}
-		addToGitignore(dir, []string{".claude/settings.json"})
+		addToGitignore(dir, []string{".claude/settings.json", ".vscode/tasks.json"})
 	}
 
 	// Open VS Code
@@ -393,10 +419,25 @@ func writeSettings(wtPath string) error {
 	return nil
 }
 
+func writeVSCodeTasks(wtPath string) error {
+	vscodeDir := filepath.Join(wtPath, ".vscode")
+	if err := os.MkdirAll(vscodeDir, 0755); err != nil {
+		return fmt.Errorf("mkdir .vscode: %w", err)
+	}
+	if err := os.WriteFile(filepath.Join(vscodeDir, "tasks.json"), []byte(vscodeTasksJSON), 0644); err != nil {
+		return fmt.Errorf("write tasks.json: %w", err)
+	}
+	return nil
+}
+
 func ensureSettings(wtPath string) {
 	settingsPath := filepath.Join(wtPath, ".claude", "settings.json")
 	if _, err := os.Stat(settingsPath); os.IsNotExist(err) {
 		writeSettings(wtPath)
+	}
+	tasksPath := filepath.Join(wtPath, ".vscode", "tasks.json")
+	if _, err := os.Stat(tasksPath); os.IsNotExist(err) {
+		writeVSCodeTasks(wtPath)
 	}
 }
 

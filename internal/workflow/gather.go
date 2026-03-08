@@ -16,6 +16,32 @@ import (
 func Gather(ctx *Context) error {
 	p := &ctx.Plan
 
+	// Validate at least one git remote exists
+	remotes, err := git.Remotes(ctx.Config.Dir)
+	if err != nil {
+		return fmt.Errorf("listing git remotes: %w", err)
+	}
+	if len(remotes) == 0 {
+		return fmt.Errorf("no git remotes configured — add a remote before releasing")
+	}
+
+	// Validate configured push-target remotes exist
+	for _, name := range ctx.Config.Remotes {
+		if !git.HasRemote(ctx.Config.Dir, name) {
+			return fmt.Errorf("configured remote %q not found in git", name)
+		}
+	}
+
+	// If there's a docs repo, check it has a remote origin
+	if docsDir := ctx.Config.ResolveDocsRepo(); docsDir != "" {
+		docsRemotes, err := git.Remotes(docsDir)
+		if err != nil {
+			fmt.Printf("  WARN: cannot list -docs remotes: %v\n", err)
+		} else if len(docsRemotes) == 0 {
+			return fmt.Errorf("docs repo %s has no git remotes — add a remote before releasing", docsDir)
+		}
+	}
+
 	// Git status
 	out, err := git.Status(ctx.Config.Dir)
 	if err != nil {

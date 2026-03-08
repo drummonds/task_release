@@ -105,8 +105,17 @@ func Run(dir string) error {
 		}
 	}
 
-	// --- Remotes summary ---
-	printRemotes(dir)
+	// --- Remotes ---
+	fmt.Println("\nRemotes")
+	for _, f := range checkRemotes(dir) {
+		fmt.Println(f)
+		switch f.level {
+		case levelError:
+			errors++
+		case levelWarn:
+			warnings++
+		}
+	}
 
 	// --- Cross-repo checks ---
 	fmt.Println("\nCross-repo")
@@ -257,17 +266,31 @@ func checkTaskfile(dir string) []finding {
 	return findings
 }
 
-func printRemotes(dir string) {
-	cfg, err := config.Load(dir)
-	if err != nil || len(cfg.Remotes) == 0 {
-		return
+func checkRemotes(dir string) []finding {
+	var findings []finding
+
+	// Check git has at least one remote
+	remotes, err := git.Remotes(dir)
+	if err != nil {
+		findings = append(findings, finding{levelError, fmt.Sprintf("Cannot list git remotes: %v", err)})
+		return findings
+	}
+	if len(remotes) == 0 {
+		findings = append(findings, finding{levelError, "No git remotes configured — release requires at least one remote"})
+		return findings
 	}
 
-	fmt.Println("\nRemotes (push targets):")
+	cfg, err := config.Load(dir)
+	if err != nil {
+		findings = append(findings, finding{levelWarn, fmt.Sprintf("Cannot load config: %v", err)})
+		return findings
+	}
+
+	// Check each configured push-target remote exists in git
 	for _, name := range cfg.Remotes {
 		url, err := git.RemoteURL(dir, name)
 		if err != nil {
-			fmt.Printf("  %-16s (not found in git)\n", name)
+			findings = append(findings, finding{levelError, fmt.Sprintf("Remote %q in config but not in git", name)})
 			continue
 		}
 		forgeType := forge.DetectFromURL(url)
@@ -276,8 +299,10 @@ func printRemotes(dir string) {
 		if hasCLI {
 			extra = ", cli: yes"
 		}
-		fmt.Printf("  %-16s %s (%s%s)\n", name, url, forgeType, extra)
+		findings = append(findings, finding{levelOK, fmt.Sprintf("%-16s %s (%s%s)", name, url, forgeType, extra)})
 	}
+
+	return findings
 }
 
 func checkCrossRepo(dir string) []finding {
@@ -339,6 +364,18 @@ func checkCrossRepo(dir string) []finding {
 		}
 		if cfg.HasPagesBuild() {
 			findings = append(findings, finding{levelWarn, "Main repo has pages_build — should be in -docs repo only"})
+		}
+
+		// Check docs repo has at least one git remote
+		docsRemotes, err := git.Remotes(docsDir)
+		if err != nil {
+			findings = append(findings, finding{levelWarn, fmt.Sprintf("Cannot list -docs remotes: %v", err)})
+		} else if len(docsRemotes) == 0 {
+			findings = append(findings, finding{levelError, "Docs repo has no git remotes — release will fail to push docs"})
+		} else if !git.HasRemote(docsDir, "origin") {
+			findings = append(findings, finding{levelWarn, "Docs repo has no 'origin' remote"})
+		} else {
+			findings = append(findings, finding{levelOK, "Docs repo has origin remote"})
 		}
 	}
 

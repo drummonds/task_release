@@ -101,6 +101,18 @@ func HasRemote(dir, remote string) bool {
 	return err == nil
 }
 
+// Remotes returns the names of all configured git remotes.
+func Remotes(dir string) ([]string, error) {
+	out, err := Run(dir, "remote")
+	if err != nil {
+		return nil, err
+	}
+	if out == "" {
+		return nil, nil
+	}
+	return strings.Split(out, "\n"), nil
+}
+
 // CurrentBranch returns the current branch name.
 func CurrentBranch(dir string) (string, error) {
 	return Run(dir, "rev-parse", "--abbrev-ref", "HEAD")

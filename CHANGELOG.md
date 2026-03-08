@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.1.43] - 2026-03-08
+
+ - Remote docs repo
+
 ## [0.1.42] - 2026-03-08
 
  - Checking for repos

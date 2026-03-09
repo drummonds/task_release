@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.1.46] - 2026-03-09
+
+ - Improving if no go.mod
+
 ## [0.1.45] - 2026-03-09
 
  - Update md2html

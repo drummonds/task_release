@@ -19,6 +19,7 @@ import (
 	"github.com/drummonds/task-plus/internal/migrate"
 	"github.com/drummonds/task-plus/internal/pages"
 	"github.com/drummonds/task-plus/internal/prompt"
+	"github.com/drummonds/task-plus/internal/readme"
 	"github.com/drummonds/task-plus/internal/self"
 	"github.com/drummonds/task-plus/internal/version"
 	"github.com/drummonds/task-plus/internal/workflow"
@@ -48,6 +49,7 @@ var commands = []struct {
 	{"repos", "Manage git remotes for release (info, add, remove)"},
 	{"pages", "Serve docs/ directory over HTTP (subcommands: deploy, config, migrate)"},
 	{"md2html", "Convert markdown files to Bulma-styled HTML"},
+	{"readme", "Update auto-marker sections in README.md (links, version)"},
 	{"wt", "Manage git worktrees (start, agent, review, merge, clean, list, dashboard)"},
 	{"claude", "Run claude --dangerously-skip-permissions (requires worktree + sandbox)"},
 	{"self", "Manage task-plus itself (update, etc.)"},
@@ -81,6 +83,8 @@ func Main() {
 		runRepos(os.Args[2:])
 	case "md2html":
 		runMd2html(os.Args[2:])
+	case "readme":
+		runReadme(os.Args[2:])
 	case "wt":
 		runWt(os.Args[2:])
 	case "claude":
@@ -473,6 +477,25 @@ func runMd2html(args []string) {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+func runReadme(args []string) {
+	fs := flag.NewFlagSet("readme", flag.ExitOnError)
+	ver := fs.String("version", "", "version string to insert (e.g. v0.1.46)")
+	dir := fs.String("dir", ".", "project directory")
+	fs.Parse(args)
+
+	absDir, err := filepath.Abs(*dir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	if err := readme.Update(absDir, *ver); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Println("README.md updated.")
 }
 
 func runReleaseVersionUpdate(args []string) {

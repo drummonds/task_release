@@ -12,12 +12,60 @@ import (
 	"github.com/drummonds/task-plus/internal/config"
 	"github.com/drummonds/task-plus/internal/deploy"
 	"github.com/drummonds/task-plus/internal/git"
+	"github.com/drummonds/task-plus/internal/readme"
 	"github.com/drummonds/task-plus/internal/release"
 	"github.com/drummonds/task-plus/internal/version"
 )
 
+// rollback tracks state for undoing local mutations on failure.
+type rollback struct {
+	dir        string
+	origHEAD   string
+	tagCreated string
+	pushed     bool
+}
+
+// undo resets the repo to its pre-release state if we haven't pushed yet.
+func (rb *rollback) undo() {
+	if rb.pushed {
+		fmt.Println("  Rollback: changes already pushed — manual cleanup required")
+		return
+	}
+	if rb.tagCreated != "" {
+		fmt.Printf("  Rollback: deleting tag %s\n", rb.tagCreated)
+		git.Run(rb.dir, "tag", "-d", rb.tagCreated)
+	}
+	if rb.origHEAD != "" {
+		fmt.Printf("  Rollback: resetting to %s\n", rb.origHEAD)
+		git.Run(rb.dir, "reset", "--hard", rb.origHEAD)
+	}
+}
+
 // Execute performs all mutations based on the plan. No prompts.
+// On failure before push, rolls back local changes (reset + delete tag).
 func Execute(ctx *Context) error {
+	rb := &rollback{dir: ctx.Config.Dir}
+
+	// Record HEAD before mutations (skip in dry-run)
+	if !ctx.DryRun {
+		head, err := git.Run(ctx.Config.Dir, "rev-parse", "HEAD")
+		if err != nil {
+			return fmt.Errorf("reading HEAD: %w", err)
+		}
+		rb.origHEAD = head
+	}
+
+	if err := executeSteps(ctx, rb); err != nil {
+		if !ctx.DryRun {
+			rb.undo()
+		}
+		return err
+	}
+	return nil
+}
+
+// executeSteps contains the actual release steps.
+func executeSteps(ctx *Context, rb *rollback) error {
 	p := &ctx.Plan
 
 	// 1. Git add
@@ -80,6 +128,27 @@ func Execute(ctx *Context) error {
 		}
 	}
 
+	// 4b. Update README.md auto-marker sections (if markers present)
+	fmt.Println("  Updating README.md markers...")
+	if ctx.DryRun {
+		fmt.Println("  (dry-run) Would update README.md markers")
+	} else {
+		if err := readme.Update(ctx.Config.Dir, p.Version.String()); err != nil {
+			fmt.Printf("  Warning: README.md update: %v\n", err)
+			// Non-fatal: continue the release
+		} else {
+			clean, _ := git.IsClean(ctx.Config.Dir)
+			if !clean {
+				if err := git.AddAll(ctx.Config.Dir); err != nil {
+					return err
+				}
+				if err := git.Commit(ctx.Config.Dir, fmt.Sprintf("Update README.md for %s", p.Version)); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
 	// 5. Update changelog + auto-commit
 	fmt.Printf("  Updating CHANGELOG.md (%s format)\n", ctx.Config.ChangelogFormat)
 	if ctx.DryRun {
@@ -109,6 +178,7 @@ func Execute(ctx *Context) error {
 		if err := git.Tag(ctx.Config.Dir, tag, msg); err != nil {
 			return err
 		}
+		rb.tagCreated = tag
 	}
 
 	// 7. WASM build
@@ -149,7 +219,7 @@ func Execute(ctx *Context) error {
 		}
 	}
 
-	// 8. Git push (all configured remotes)
+	// 8. Git push (all configured remotes) — ROLLBACK BOUNDARY
 	if p.DoPush {
 		for _, remote := range ctx.Config.Remotes {
 			fmt.Printf("  Pushing to %s...\n", remote)
@@ -159,11 +229,12 @@ func Execute(ctx *Context) error {
 				if err := git.PushTo(ctx.Config.Dir, remote); err != nil {
 					return fmt.Errorf("push to %s: %w", remote, err)
 				}
+				rb.pushed = true
 			}
 		}
 	}
 
-	// 9. Goreleaser
+	// 9. Goreleaser (post-push — warn only on failure)
 	if p.DoGoreleaser {
 		fmt.Println("  Running goreleaser...")
 		if ctx.DryRun {

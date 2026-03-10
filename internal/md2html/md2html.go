@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/drummonds/task-plus/internal/git"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
@@ -298,6 +299,7 @@ func extractHTMLTitle(path, fallback string) string {
 // discoverLinks auto-discovers project links from git remotes and task-plus.yml.
 // When run from a docs repo (has parent_repo), shows both parent "Source" links
 // and current "Docs repo" links. When run from a non-docs repo, shows "Source" links only.
+// Also adds a "Documentation" link from statichost config if available.
 func discoverLinks() []LinkInfo {
 	var links []LinkInfo
 
@@ -305,11 +307,16 @@ func discoverLinks() []LinkInfo {
 	parentDir := readParentRepo(".")
 	isDocsRepo := parentDir != ""
 
+	// Documentation link from statichost config
+	if docURL := readDocumentationURL("."); docURL != "" {
+		links = append(links, LinkInfo{Label: "Documentation", URL: docURL})
+	}
+
 	if isDocsRepo {
 		// We're in a docs repo: parent remotes are "Source", cwd remotes are "Docs repo".
 		parentRemotes := gitRemoteURLs(parentDir)
 		for _, name := range sortedKeys(parentRemotes) {
-			webURL := gitURLToWeb(parentRemotes[name])
+			webURL := git.URLToWeb(parentRemotes[name])
 			if webURL == "" {
 				continue
 			}
@@ -320,7 +327,7 @@ func discoverLinks() []LinkInfo {
 			links = append(links, LinkInfo{Label: label, URL: webURL})
 		}
 		for _, name := range sortedKeys(cwdRemotes) {
-			webURL := gitURLToWeb(cwdRemotes[name])
+			webURL := git.URLToWeb(cwdRemotes[name])
 			if webURL == "" {
 				continue
 			}
@@ -333,7 +340,7 @@ func discoverLinks() []LinkInfo {
 	} else {
 		// Not a docs repo: cwd remotes are "Source".
 		for _, name := range sortedKeys(cwdRemotes) {
-			webURL := gitURLToWeb(cwdRemotes[name])
+			webURL := git.URLToWeb(cwdRemotes[name])
 			if webURL == "" {
 				continue
 			}
@@ -393,21 +400,54 @@ func gitRemoteURLs(dir string) map[string]string {
 	return remotes
 }
 
-// gitURLToWeb converts a git remote URL to a web-browsable URL.
-// Handles SSH (git@host:org/repo.git) and HTTPS formats.
-func gitURLToWeb(rawURL string) string {
-	u := strings.TrimSpace(rawURL)
-	u = strings.TrimSuffix(u, ".git")
-
-	// SSH: git@github.com:org/repo -> https://github.com/org/repo
-	if strings.HasPrefix(u, "git@") {
-		u = strings.TrimPrefix(u, "git@")
-		u = strings.Replace(u, ":", "/", 1)
-		return "https://" + u
+// readDocumentationURL reads the statichost site from task-plus.yml and returns its URL.
+// For docs repos, reads directly. For project repos, reads from the -docs sibling.
+func readDocumentationURL(dir string) string {
+	// Try the current directory's config first
+	site := readStatichostSite(dir)
+	if site != "" {
+		return "https://" + site + ".statichost.page/"
 	}
-	// Already HTTPS
-	if strings.HasPrefix(u, "https://") || strings.HasPrefix(u, "http://") {
-		return u
+	// Try -docs sibling
+	parentDir := readParentRepo(dir)
+	if parentDir == "" {
+		// Not a docs repo; look for -docs sibling
+		absDir, err := filepath.Abs(dir)
+		if err != nil {
+			return ""
+		}
+		sibling := absDir + "-docs"
+		site = readStatichostSite(sibling)
+		if site != "" {
+			return "https://" + site + ".statichost.page/"
+		}
+	}
+	return ""
+}
+
+// readStatichostSite reads the statichost site name from task-plus.yml in dir.
+func readStatichostSite(dir string) string {
+	data, err := os.ReadFile(filepath.Join(dir, "task-plus.yml"))
+	if err != nil {
+		return ""
+	}
+	// Simple line-based parse: look for "site:" within pages_deploy section
+	lines := strings.Split(string(data), "\n")
+	inDeploy := false
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "pages_deploy:" {
+			inDeploy = true
+			continue
+		}
+		// Exit pages_deploy section on next top-level key
+		if inDeploy && len(line) > 0 && line[0] != ' ' && line[0] != '\t' && line[0] != '-' {
+			break
+		}
+		if inDeploy && strings.HasPrefix(trimmed, "site:") {
+			val := strings.TrimPrefix(trimmed, "site:")
+			return strings.TrimSpace(val)
+		}
 	}
 	return ""
 }

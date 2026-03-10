@@ -2,6 +2,8 @@
 
 Go CLI tool that standardizes common development workflows across repositories. Subcommand architecture — start with `release`, more commands to come.
 
+<!-- auto:version -->Latest: v0.1.46<!-- /auto:version -->
+
 Try https://h3-task-plus.statichost.page/ for documentation.
 
 ## Install
@@ -22,14 +24,15 @@ Both binaries are identical — `tp` is just shorter to type.
 
 | Command | Description |
 |---------|-------------|
-| `check` | Validate task-plus.yml and Taskfile.yml configuration |
-| `release` | Interactive release workflow |
+| [`check`](https://h3-task-plus.statichost.page/check.html) | Validate task-plus.yml and Taskfile.yml configuration |
+| [`release`](https://h3-task-plus.statichost.page/release-workflow.html) | Interactive release workflow |
 | `release:version-update` | Scaffold a Taskfile task to update version strings |
 | `repos` | Manage git remotes for release |
-| `pages` | Serve, deploy, configure, and migrate documentation |
+| [`pages`](https://h3-task-plus.statichost.page/pages.html) | Serve, deploy, configure, and migrate documentation |
 | `md2html` | Convert markdown files to Bulma-styled HTML |
-| `wt` | Manage git worktrees for isolated Claude tasks |
-| `claude` | Run claude with --dangerously-skip-permissions (requires worktree + sandbox) |
+| `readme` | Update auto-marker sections in README.md |
+| [`wt`](https://h3-task-plus.statichost.page/worktrees.html) | Manage git worktrees for isolated Claude tasks |
+| [`claude`](https://h3-task-plus.statichost.page/worktrees.html#the-claude-command) | Run claude with --dangerously-skip-permissions (requires worktree + sandbox) |
 | `self` | Manage task-plus itself |
 
 ### Global Flags
@@ -242,9 +245,11 @@ pages_deploy:
 
 ## Links
 
+<!-- auto:links -->
 | | |
 |---|---|
 | Documentation | https://h3-task-plus.statichost.page/ |
 | Source (Codeberg) | https://codeberg.org/hum3/task-plus |
 | Mirror (GitHub) | https://github.com/drummonds/task-plus |
 | Docs repo | https://codeberg.org/hum3/task-plus-docs |
+<!-- /auto:links -->

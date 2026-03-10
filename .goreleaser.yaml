@@ -36,6 +36,11 @@ archives:
       - task-plus
       - tp
 
+release:
+  github:
+    owner: drummonds
+    name: task-plus
+
 changelog:
   sort: asc
   filters:

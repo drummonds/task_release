@@ -90,9 +90,16 @@ func GenerateLinksTable(dir string) string {
 		cfg = &config.Config{Dir: dir}
 	}
 
-	// Documentation URL from docs sibling's statichost config
+	// Documentation URL from statichost config (local or -docs sibling)
 	if docURL := docsURL(cfg); docURL != "" {
 		rows = append(rows, struct{ label, url string }{"Documentation", docURL})
+	}
+
+	// PyPI link for Python projects
+	if cfg.HasPython() {
+		if name := cfg.PypiPackageName(); name != "" {
+			rows = append(rows, struct{ label, url string }{"PyPI", "https://pypi.org/project/" + name + "/"})
+		}
 	}
 
 	// Source links from git remotes (Source before Mirror)
@@ -154,8 +161,16 @@ func GenerateLinksTable(dir string) string {
 	return sb.String()
 }
 
-// docsURL returns the documentation URL from the -docs sibling's statichost config.
+// docsURL returns the documentation URL from statichost config.
+// Checks local config first (combined docs), then -docs sibling.
 func docsURL(cfg *config.Config) string {
+	// Check local config first
+	for _, target := range cfg.PagesDeploy {
+		if target.Type == "statichost" && target.Site != "" {
+			return "https://" + target.Site + ".statichost.page/"
+		}
+	}
+	// Fall back to -docs sibling
 	docsDir := cfg.ResolveDocsRepo()
 	if docsDir == "" {
 		return ""

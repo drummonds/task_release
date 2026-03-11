@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/drummonds/task-plus/internal/deploy"
 	"gopkg.in/yaml.v3"
@@ -16,6 +17,7 @@ type CleanupConfig struct {
 
 type Config struct {
 	Type             string          `yaml:"type"`
+	Languages        []string        `yaml:"languages"`
 	Precheck         []string        `yaml:"precheck"`
 	Check            []string        `yaml:"check"`
 	ChangelogFormat  string          `yaml:"changelog_format"`
@@ -87,6 +89,9 @@ func Load(dir string) (*Config, error) {
 func (c *Config) applyDefaults() {
 	if c.Type == "" {
 		c.Type = c.detectType()
+	}
+	if len(c.Languages) == 0 {
+		c.Languages = c.detectLanguages()
 	}
 	if len(c.Precheck) == 0 {
 		c.Precheck = c.detectPrecheck()
@@ -286,6 +291,82 @@ func (c *Config) detectPagesBuild() []string {
 func (c *Config) HasGoMod() bool {
 	_, err := os.Stat(filepath.Join(c.Dir, "go.mod"))
 	return err == nil
+}
+
+// HasPyproject returns true if a pyproject.toml file exists in the project directory.
+func (c *Config) HasPyproject() bool {
+	_, err := os.Stat(filepath.Join(c.Dir, "pyproject.toml"))
+	return err == nil
+}
+
+// HasGo returns true if "go" is in the detected languages.
+func (c *Config) HasGo() bool {
+	return slices.Contains(c.Languages, "go")
+}
+
+// HasPython returns true if "python" is in the detected languages.
+func (c *Config) HasPython() bool {
+	return slices.Contains(c.Languages, "python")
+}
+
+// detectLanguages auto-detects project languages from marker files.
+func (c *Config) detectLanguages() []string {
+	var langs []string
+	if c.HasGoMod() {
+		langs = append(langs, "go")
+	}
+	if c.HasPyproject() {
+		langs = append(langs, "python")
+	}
+	return langs
+}
+
+// PypiPackageName reads the package name from pyproject.toml's [project] name field.
+// Returns "" if not found.
+func (c *Config) PypiPackageName() string {
+	data, err := os.ReadFile(filepath.Join(c.Dir, "pyproject.toml"))
+	if err != nil {
+		return ""
+	}
+	// Simple line-based parser — avoids TOML dependency
+	inProject := false
+	for _, line := range splitLines(string(data)) {
+		trimmed := line
+		for len(trimmed) > 0 && (trimmed[0] == ' ' || trimmed[0] == '\t') {
+			trimmed = trimmed[1:]
+		}
+		if trimmed == "[project]" {
+			inProject = true
+			continue
+		}
+		if len(trimmed) > 0 && trimmed[0] == '[' {
+			inProject = false
+			continue
+		}
+		if inProject && len(trimmed) > 7 && trimmed[:5] == "name " || inProject && len(trimmed) > 5 && trimmed[:5] == "name=" {
+			// Extract value from: name = "foo" or name="foo"
+			idx := 0
+			for idx < len(trimmed) && trimmed[idx] != '=' {
+				idx++
+			}
+			if idx >= len(trimmed) {
+				continue
+			}
+			val := trimmed[idx+1:]
+			// Trim spaces and quotes
+			for len(val) > 0 && (val[0] == ' ' || val[0] == '\t') {
+				val = val[1:]
+			}
+			if len(val) >= 2 && val[0] == '"' {
+				end := 1
+				for end < len(val) && val[end] != '"' {
+					end++
+				}
+				return val[1:end]
+			}
+		}
+	}
+	return ""
 }
 
 // HasPagesBuild returns true if page build steps are configured.

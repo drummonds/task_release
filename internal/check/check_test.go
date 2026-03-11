@@ -75,6 +75,68 @@ func TestCheckConfig_ChangemeWarning(t *testing.T) {
 	}
 }
 
+func TestCheckConfig_LanguagesDetected(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte("remotes: [origin]\n"), 0644)
+	os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example.com/test\n"), 0644)
+	os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte("[project]\nname = \"test\"\n"), 0644)
+	findings := checkConfig(dir)
+	hasLangs := false
+	for _, f := range findings {
+		if f.level == levelOK && f.message == "Languages: go, python" {
+			hasLangs = true
+		}
+	}
+	if !hasLangs {
+		t.Errorf("expected languages OK, got %v", findings)
+	}
+}
+
+func TestCheckConfig_GoWithoutGoMod(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte("languages: [go]\n"), 0644)
+	findings := checkConfig(dir)
+	hasError := false
+	for _, f := range findings {
+		if f.level == levelError && f.message == "Language 'go' but no go.mod found" {
+			hasError = true
+		}
+	}
+	if !hasError {
+		t.Errorf("expected go/go.mod error, got %v", findings)
+	}
+}
+
+func TestCheckConfig_PythonWithoutPyproject(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte("languages: [python]\n"), 0644)
+	findings := checkConfig(dir)
+	hasError := false
+	for _, f := range findings {
+		if f.level == levelError && f.message == "Language 'python' but no pyproject.toml found" {
+			hasError = true
+		}
+	}
+	if !hasError {
+		t.Errorf("expected python/pyproject.toml error, got %v", findings)
+	}
+}
+
+func TestCheckConfig_UnknownLanguage(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte("languages: [rust]\n"), 0644)
+	findings := checkConfig(dir)
+	hasWarn := false
+	for _, f := range findings {
+		if f.level == levelWarn && f.message == `Unknown language "rust" (expected: go, python)` {
+			hasWarn = true
+		}
+	}
+	if !hasWarn {
+		t.Errorf("expected unknown language warning, got %v", findings)
+	}
+}
+
 func TestCheckTaskfile_Missing(t *testing.T) {
 	dir := t.TempDir()
 	findings := checkTaskfile(dir)

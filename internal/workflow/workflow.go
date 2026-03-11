@@ -32,15 +32,16 @@ type Plan struct {
 	ForkBranch        string
 
 	// User decisions
-	DoGitAdd     bool
-	CommitMsg    string
-	Version      version.Version
-	Comment      string
-	DoPush       bool
-	DoGoreleaser bool
-	DoCleanup    bool
-	DoInstall    bool
-	DoDeploy     bool
+	DoGitAdd       bool
+	CommitMsg      string
+	Version        version.Version
+	Comment        string
+	DoPush         bool
+	DoGoreleaser   bool
+	DoPublishPyPI  bool
+	DoCleanup      bool
+	DoInstall      bool
+	DoDeploy       bool
 }
 
 // Context carries config and flags through the workflow.

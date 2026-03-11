@@ -42,6 +42,14 @@ func Gather(ctx *Context) error {
 		}
 	}
 
+	// Validate language marker files
+	if ctx.Config.HasGo() && !ctx.Config.HasGoMod() {
+		return fmt.Errorf("language 'go' configured but no go.mod found")
+	}
+	if ctx.Config.HasPython() && !ctx.Config.HasPyproject() {
+		return fmt.Errorf("language 'python' configured but no pyproject.toml found")
+	}
+
 	// Git status
 	out, err := git.Status(ctx.Config.Dir)
 	if err != nil {

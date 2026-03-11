@@ -14,6 +14,9 @@ func Ask(ctx *Context) error {
 	p := &ctx.Plan
 
 	// Status summary
+	if len(ctx.Config.Languages) > 0 {
+		fmt.Printf("  Languages: %s\n", strings.Join(ctx.Config.Languages, ", "))
+	}
 	if p.FoundTag {
 		fmt.Printf("  Latest tag: %s\n", p.LatestTag)
 	} else {
@@ -61,6 +64,14 @@ func Ask(ctx *Context) error {
 	// Goreleaser
 	if ctx.Config.IsBinary() && p.HasGoreleaserCfg {
 		p.DoGoreleaser = prompt.ConfirmOrAuto("Run goreleaser?")
+	}
+
+	// PyPI publish
+	if ctx.Config.HasPython() {
+		name := ctx.Config.PypiPackageName()
+		if name != "" {
+			p.DoPublishPyPI = prompt.ConfirmOrAuto(fmt.Sprintf("Publish %s to PyPI?", name))
+		}
 	}
 
 	// Cleanup
@@ -129,6 +140,9 @@ func PrintSummary(ctx *Context) {
 	}
 	if p.DoGoreleaser {
 		fmt.Println("  Goreleaser: yes")
+	}
+	if p.DoPublishPyPI {
+		fmt.Printf("  PyPI publish: yes (%s)\n", ctx.Config.PypiPackageName())
 	}
 	if p.DoCleanup {
 		fmt.Printf("  Cleanup: delete %d releases\n", len(p.ReleasesToDelete))

@@ -52,6 +52,7 @@ var knownConfigKeys = map[string]bool{
 	"fork":              true,
 	"install":           true,
 	"install_retries":   true,
+	"languages":         true,
 	"pages_build":       true,
 	"pages_deploy":      true,
 	"docs_repo":         true,
@@ -180,6 +181,25 @@ func checkConfig(dir string) []finding {
 		findings = append(findings, finding{levelOK, fmt.Sprintf("Type: %s", cfg.Type)})
 	default:
 		findings = append(findings, finding{levelError, fmt.Sprintf("Invalid type %q (expected: binary, library, docs)", cfg.Type)})
+	}
+
+	// Validate languages
+	if len(cfg.Languages) > 0 {
+		findings = append(findings, finding{levelOK, fmt.Sprintf("Languages: %s", strings.Join(cfg.Languages, ", "))})
+	}
+	for _, lang := range cfg.Languages {
+		switch lang {
+		case "go":
+			if !cfg.HasGoMod() {
+				findings = append(findings, finding{levelError, "Language 'go' but no go.mod found"})
+			}
+		case "python":
+			if !cfg.HasPyproject() {
+				findings = append(findings, finding{levelError, "Language 'python' but no pyproject.toml found"})
+			}
+		default:
+			findings = append(findings, finding{levelWarn, fmt.Sprintf("Unknown language %q (expected: go, python)", lang)})
+		}
 	}
 
 	// Validate changelog_format

@@ -246,6 +246,32 @@ func executeSteps(ctx *Context, rb *rollback) error {
 		}
 	}
 
+	// 9b. PyPI publish (post-push)
+	if p.DoPublishPyPI {
+		fmt.Println("  Publishing to PyPI...")
+		if ctx.DryRun {
+			fmt.Println("  (dry-run) Would run: uv build && uv publish")
+		} else {
+			// Build
+			build := exec.Command("uv", "build")
+			build.Dir = ctx.Config.Dir
+			build.Stdout = os.Stdout
+			build.Stderr = os.Stderr
+			if err := build.Run(); err != nil {
+				fmt.Printf("  Warning: uv build failed: %v\n", err)
+			} else {
+				// Publish
+				publish := exec.Command("uv", "publish")
+				publish.Dir = ctx.Config.Dir
+				publish.Stdout = os.Stdout
+				publish.Stderr = os.Stderr
+				if err := publish.Run(); err != nil {
+					fmt.Printf("  Warning: uv publish failed: %v\n", err)
+				}
+			}
+		}
+	}
+
 	// 10. Cleanup
 	if p.DoCleanup {
 		fmt.Println("  Cleaning up old releases...")

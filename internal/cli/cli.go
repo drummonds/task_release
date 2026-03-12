@@ -17,6 +17,7 @@ import (
 	"github.com/drummonds/task-plus/internal/forge"
 	"github.com/drummonds/task-plus/internal/git"
 	"github.com/drummonds/task-plus/internal/md2html"
+	"github.com/drummonds/task-plus/internal/mdupdate"
 	"github.com/drummonds/task-plus/internal/pages"
 	"github.com/drummonds/task-plus/internal/prompt"
 	"github.com/drummonds/task-plus/internal/readme"
@@ -49,6 +50,7 @@ var commands = []struct {
 	{"repos", "Manage git remotes for release (info, add, remove)"},
 	{"pages", "Serve docs/ directory over HTTP (subcommands: deploy, config, combine)"},
 	{"md2html", "Convert markdown files to Bulma-styled HTML"},
+	{"md_update", "Update auto-marker sections in a markdown file (toc, pages, links)"},
 	{"readme", "Update auto-marker sections in README.md (links, version)"},
 	{"wt", "Manage git worktrees (start, agent, review, merge, clean, list, dashboard)"},
 	{"claude", "Run claude --dangerously-skip-permissions (requires worktree + sandbox)"},
@@ -83,6 +85,8 @@ func Main() {
 		runRepos(os.Args[2:])
 	case "md2html":
 		runMd2html(os.Args[2:])
+	case "md_update":
+		runMdUpdate(os.Args[2:])
 	case "readme":
 		runReadme(os.Args[2:])
 	case "wt":
@@ -418,6 +422,28 @@ func runMd2html(args []string) {
 		File:    *file,
 	}
 	if err := md2html.Run(cfg); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func runMdUpdate(args []string) {
+	fs := flag.NewFlagSet("md_update", flag.ExitOnError)
+	dst := fs.String("dst", "", "directory to scan for HTML pages (default: file's directory)")
+	fs.Parse(args)
+
+	file := fs.Arg(0)
+	if file == "" {
+		fmt.Fprintf(os.Stderr, "Usage: task-plus md_update [--dst <dir>] <file.md>\n")
+		os.Exit(1)
+	}
+
+	opts := mdupdate.Options{}
+	if *dst != "" {
+		opts.PagesDir = *dst
+	}
+
+	if err := mdupdate.Update(file, opts); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}

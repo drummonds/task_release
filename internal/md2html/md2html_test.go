@@ -7,39 +7,20 @@ import (
 	"testing"
 )
 
-func TestGeneratePagesTable(t *testing.T) {
-	dir := t.TempDir()
+func TestDocsRootURL(t *testing.T) {
+	root := t.TempDir()
+	docs := filepath.Join(root, "docs")
+	research := filepath.Join(docs, "research")
+	os.MkdirAll(research, 0755)
 
-	// Create some HTML files with <title> tags.
-	for _, f := range []struct {
-		name, title string
-	}{
-		{"alpha.html", "Alpha Page"},
-		{"beta.html", "Beta Page"},
-	} {
-		content := "<html><head><title>" + f.title + "</title></head><body></body></html>"
-		os.WriteFile(filepath.Join(dir, f.name), []byte(content), 0644)
-	}
-	// index.html should be excluded.
-	os.WriteFile(filepath.Join(dir, "index.html"), []byte("<html></html>"), 0644)
+	os.WriteFile(filepath.Join(docs, "index.md"), []byte("# Index"), 0644)
 
-	table := GeneratePagesTable(dir)
-	if !strings.Contains(table, "Alpha Page") {
-		t.Errorf("expected Alpha Page in table, got:\n%s", table)
+	if got := docsRootURL(docs); got != "index.html" {
+		t.Errorf("docsRootURL(docs) = %q, want %q", got, "index.html")
 	}
-	if !strings.Contains(table, "beta.html") {
-		t.Errorf("expected beta.html in table, got:\n%s", table)
-	}
-	if strings.Contains(table, "index.html") {
-		t.Errorf("index.html should be excluded from pages table")
-	}
-}
 
-func TestGeneratePagesTableEmpty(t *testing.T) {
-	dir := t.TempDir()
-	table := GeneratePagesTable(dir)
-	if table != "\n" {
-		t.Errorf("expected single newline for empty dir, got: %q", table)
+	if got := docsRootURL(research); got != "../index.html" {
+		t.Errorf("docsRootURL(research) = %q, want %q", got, "../index.html")
 	}
 }
 

@@ -130,6 +130,30 @@ func Run(dir string) error {
 		}
 	}
 
+	// --- Worktrees ---
+	fmt.Println("\nWorktrees")
+	for _, f := range checkWorktrees(dir) {
+		fmt.Println(f)
+		switch f.level {
+		case levelError:
+			errors++
+		case levelWarn:
+			warnings++
+		}
+	}
+
+	// --- GitHub Pages ---
+	fmt.Println("\nGitHub Pages")
+	for _, f := range checkGitHubPages(dir) {
+		fmt.Println(f)
+		switch f.level {
+		case levelError:
+			errors++
+		case levelWarn:
+			warnings++
+		}
+	}
+
 	// --- Deploy summary ---
 	printDeploy(dir)
 
@@ -351,6 +375,166 @@ func checkCrossRepo(dir string) []finding {
 	}
 
 	return findings
+}
+
+func checkWorktrees(dir string) []finding {
+	var findings []finding
+
+	out, err := git.Run(dir, "worktree", "list", "--porcelain")
+	if err != nil {
+		findings = append(findings, finding{levelWarn, fmt.Sprintf("Cannot list worktrees: %v", err)})
+		return findings
+	}
+
+	// Parse porcelain output: blocks separated by blank lines.
+	// Each block has "worktree <path>" and "branch refs/heads/<name>".
+	type wt struct {
+		path, branch string
+		bare         bool
+	}
+	var worktrees []wt
+	var cur wt
+	for _, line := range strings.Split(out, "\n") {
+		switch {
+		case strings.HasPrefix(line, "worktree "):
+			if cur.path != "" {
+				worktrees = append(worktrees, cur)
+			}
+			cur = wt{path: strings.TrimPrefix(line, "worktree ")}
+		case strings.HasPrefix(line, "branch "):
+			ref := strings.TrimPrefix(line, "branch ")
+			cur.branch = strings.TrimPrefix(ref, "refs/heads/")
+		case line == "bare":
+			cur.bare = true
+		}
+	}
+	if cur.path != "" {
+		worktrees = append(worktrees, cur)
+	}
+
+	if len(worktrees) <= 1 {
+		findings = append(findings, finding{levelOK, "No extra worktrees"})
+		return findings
+	}
+
+	findings = append(findings, finding{levelOK, fmt.Sprintf("%d worktrees:", len(worktrees))})
+	for _, w := range worktrees {
+		label := w.branch
+		if label == "" {
+			label = "(detached)"
+		}
+		if w.bare {
+			label = "(bare)"
+		}
+		findings = append(findings, finding{levelOK, fmt.Sprintf("  %-40s %s", w.path, label)})
+	}
+
+	return findings
+}
+
+func checkGitHubPages(dir string) []finding {
+	var findings []finding
+
+	// Find the GitHub remote
+	cfg, err := config.Load(dir)
+	if err != nil {
+		findings = append(findings, finding{levelWarn, "Cannot load config"})
+		return findings
+	}
+
+	var ghRemote string
+	for _, name := range cfg.Remotes {
+		url, err := git.RemoteURL(dir, name)
+		if err != nil {
+			continue
+		}
+		if strings.Contains(url, "github.com") {
+			ghRemote = name
+			break
+		}
+	}
+	if ghRemote == "" {
+		findings = append(findings, finding{levelOK, "No GitHub remote configured"})
+		return findings
+	}
+
+	// Check if gh-pages branch exists (locally or remote)
+	_, errLocal := git.Run(dir, "rev-parse", "--verify", "gh-pages")
+	_, errRemote := git.Run(dir, "rev-parse", "--verify", "remotes/"+ghRemote+"/gh-pages")
+
+	if errLocal != nil && errRemote != nil {
+		findings = append(findings, finding{levelOK, "No gh-pages branch (GitHub Pages absent)"})
+		return findings
+	}
+
+	// gh-pages exists — check what's in it
+	ref := "gh-pages"
+	if errLocal != nil {
+		ref = ghRemote + "/gh-pages"
+	}
+
+	// List files in gh-pages root
+	files, err := git.Run(dir, "ls-tree", "--name-only", ref)
+	if err != nil {
+		findings = append(findings, finding{levelWarn, "gh-pages branch exists but cannot list contents"})
+		return findings
+	}
+
+	fileList := strings.Split(strings.TrimSpace(files), "\n")
+
+	// Check if it's a simple redirect: just index.html (and maybe CNAME/.nojekyll)
+	htmlFiles := 0
+	hasIndex := false
+	for _, f := range fileList {
+		if strings.HasSuffix(f, ".html") {
+			htmlFiles++
+		}
+		if f == "index.html" {
+			hasIndex = true
+		}
+	}
+
+	if !hasIndex {
+		findings = append(findings, finding{levelWarn, fmt.Sprintf("gh-pages branch has %d files but no index.html", len(fileList))})
+		return findings
+	}
+
+	if htmlFiles == 1 && hasIndex {
+		// Likely a redirect page — check content
+		content, err := git.Run(dir, "show", ref+":index.html")
+		if err == nil && isRedirectPage(content) {
+			target := extractRedirectTarget(content)
+			findings = append(findings, finding{levelOK, fmt.Sprintf("Simple redirect to %s", target)})
+			return findings
+		}
+	}
+
+	findings = append(findings, finding{levelOK, fmt.Sprintf("gh-pages branch with %d files (%d HTML)", len(fileList), htmlFiles)})
+	return findings
+}
+
+// isRedirectPage checks if HTML content is a simple redirect/refresh page.
+func isRedirectPage(content string) bool {
+	lower := strings.ToLower(content)
+	return strings.Contains(lower, "http-equiv") && strings.Contains(lower, "refresh")
+}
+
+// extractRedirectTarget extracts the URL from a meta refresh tag.
+func extractRedirectTarget(content string) string {
+	lower := strings.ToLower(content)
+	idx := strings.Index(lower, "url=")
+	if idx < 0 {
+		return "(unknown)"
+	}
+	rest := content[idx+4:]
+	// Strip quotes
+	rest = strings.TrimLeft(rest, "'\"")
+	// Find end
+	end := strings.IndexAny(rest, "'\" >")
+	if end > 0 {
+		rest = rest[:end]
+	}
+	return rest
 }
 
 func printDeploy(dir string) {

@@ -30,6 +30,7 @@ Both binaries are identical — `tp` is just shorter to type.
 | `repos` | Manage git remotes for release |
 | [`pages`](https://h3-task-plus.statichost.page/pages.html) | Serve, deploy, configure, and migrate documentation |
 | `md2html` | Convert markdown files to Bulma-styled HTML |
+| `md_update` | Update auto-marker sections in a markdown file (toc, pages, links) |
 | `readme` | Update auto-marker sections in README.md |
 | [`wt`](https://h3-task-plus.statichost.page/worktrees.html) | Manage git worktrees for isolated Claude tasks |
 | [`claude`](https://h3-task-plus.statichost.page/worktrees.html#the-claude-command) | Run claude with --dangerously-skip-permissions (requires worktree + sandbox) |
@@ -127,23 +128,34 @@ Flags (serve mode):
 
 ### `tp md2html`
 
-Converts markdown files to Bulma-styled HTML pages with breadcrumb navigation. Supports `<!-- auto:pages -->` and `<!-- auto:links -->
-| | |
-|---|---|
-| Documentation | https://h3-task-plus.statichost.page/ |
-| Source (Codeberg) | https://codeberg.org/hum3/task-plus |
-| Mirror (GitHub) | https://github.com/drummonds/task-plus |
-<!-- /auto:links -->` — replaced with auto-discovered project links (git remotes, statichost)
+Converts markdown files to Bulma-styled HTML pages with breadcrumb navigation. Supports auto-marker comments:
 
-Typical docs repo Taskfile pattern — convert `index.md` last so `auto:pages` sees all HTML files:
+| Marker | Output |
+|--------|--------|
+| &lt;!-- auto:toc --&gt; | Table of contents from h2+ headings |
+| &lt;!-- auto:pages --&gt; | Bulma sidebar nav of all HTML pages, grouped by subdirectory |
+| &lt;!-- auto:links --&gt; | Project links (git remotes, statichost) |
+
+Breadcrumbs auto-detect the docs root by walking up from `--dst` to find `index.html`/`index.md`, so subdirectory pages link correctly to the root.
+
+Typical docs repo Taskfile pattern — convert subdirectories first, `index.md` last so `auto:pages` sees all HTML files:
 
 ```yaml
 docs:build:
   cmds:
-    - task-plus md2html --src docs --dst docs           # convert docs/*.md
-    - task-plus md2html --file DOC-README.md --dst docs  # individual files
+    - task-plus md2html --src docs/research --dst docs/research
+    - task-plus md2html --src docs --dst docs
     - task-plus md2html --file ../myapp/README.md --dst docs
     - task-plus md2html --file docs/index.md --dst docs  # index last (auto:pages)
+```
+
+### `tp md_update`
+
+Updates auto-marker sections in a markdown file without converting to HTML. Same markers as `md2html` (auto:toc, auto:pages, auto:links) but writes back to the source `.md` file.
+
+```bash
+tp md_update docs/index.md              # scan file's directory for pages
+tp md_update --dst docs docs/index.md   # explicit pages directory
 ```
 
 ### `tp wt`

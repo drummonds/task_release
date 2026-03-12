@@ -3,3 +3,4 @@ dist/
 .claude/settings.json
 .vscode/tasks.json
 docs/*.html
+.tp-release-comment

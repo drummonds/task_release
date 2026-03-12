@@ -177,6 +177,7 @@ func runRelease(args []string) {
 	dryRun := fs.Bool("dry-run", false, "show what would happen without making changes")
 	yes := fs.Bool("yes", false, "auto-confirm all prompts")
 	dir := fs.String("dir", ".", "project directory")
+	comment := fs.String("comment", "", "default release comment (overrides .tp-release-comment)")
 	fs.Parse(args)
 
 	if *yes {
@@ -208,7 +209,7 @@ func runRelease(args []string) {
 	fmt.Printf("task-plus release %s\n", appVersion)
 	fmt.Printf("Project: %s (%s)\n", absDir, cfg.Type)
 
-	if err := workflow.Run(cfg, *dryRun); err != nil {
+	if err := workflow.Run(cfg, *dryRun, *comment); err != nil {
 		fmt.Fprintf(os.Stderr, "\nError: %v\n", err)
 		os.Exit(1)
 	}

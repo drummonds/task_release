@@ -6,6 +6,7 @@ import (
 
 	"github.com/drummonds/task-plus/internal/config"
 	"github.com/drummonds/task-plus/internal/prompt"
+	"github.com/drummonds/task-plus/internal/releasecomment"
 	"github.com/drummonds/task-plus/internal/version"
 )
 
@@ -48,7 +49,15 @@ func Ask(ctx *Context) error {
 		return err
 	}
 	p.Version = v
-	p.Comment = prompt.AskStringOrAuto("Release comment", p.CommitMsg)
+	// Default release comment: --comment flag > .tp-release-comment file > commit msg
+	commentDefault := p.CommitMsg
+	if saved, _ := releasecomment.Read(ctx.Config.Dir); saved != "" {
+		commentDefault = saved
+	}
+	if ctx.Comment != "" {
+		commentDefault = ctx.Comment
+	}
+	p.Comment = prompt.AskStringOrAuto("Release comment", commentDefault)
 
 	// Push
 	remotes := ctx.Config.Remotes

@@ -16,6 +16,7 @@ import (
 	"github.com/drummonds/task-plus/internal/agent"
 	"github.com/drummonds/task-plus/internal/dashboard"
 	"github.com/drummonds/task-plus/internal/prompt"
+	"github.com/drummonds/task-plus/internal/releasecomment"
 )
 
 const settingsJSON = `{
@@ -268,10 +269,15 @@ func runMerge(args []string) error {
 	wtPath := worktreePath(dir, projName, task)
 	branch := "task/" + task
 
+	// Capture last commit subject before merging
+	commitMsg := lastCommitSubject(dir, branch)
+
 	fmt.Printf("Merging %s into current branch\n", branch)
 	if err := git(dir, "merge", branch); err != nil {
 		return fmt.Errorf("merge: %w", err)
 	}
+
+	saveReleaseComment(dir, commitMsg)
 
 	fmt.Printf("Removing worktree at %s\n", wtPath)
 	if err := git(dir, "worktree", "remove", wtPath); err != nil {
@@ -312,11 +318,16 @@ func runClean(args []string) error {
 		return nil
 	}
 
+	// Capture last commit subject before merging
+	commitMsg := lastCommitSubject(dir, branch)
+
 	// 1. Merge
 	fmt.Printf("\nMerging %s into current branch\n", branch)
 	if err := git(dir, "merge", branch); err != nil {
 		return fmt.Errorf("merge failed: %w (worktree left in place)", err)
 	}
+
+	saveReleaseComment(dir, commitMsg)
 
 	// 2. Close VS Code workspace folder (before removing worktree directory)
 	closeVSCodeFolder(wtPath)
@@ -551,6 +562,27 @@ func addToGitignore(dir string, entries []string) {
 		for _, entry := range toAdd {
 			f.WriteString(entry + "\n")
 		}
+	}
+}
+
+// lastCommitSubject returns the subject line of the last commit on branch.
+func lastCommitSubject(dir, branch string) string {
+	out, err := exec.Command("git", "-C", dir, "log", "-1", "--format=%s", branch).Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// saveReleaseComment writes the commit message as the default release comment.
+func saveReleaseComment(dir, msg string) {
+	if msg == "" {
+		return
+	}
+	if err := releasecomment.Write(dir, msg); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: could not save release comment: %v\n", err)
+	} else {
+		fmt.Printf("Saved release comment: %s\n", msg)
 	}
 }
 

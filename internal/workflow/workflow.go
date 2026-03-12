@@ -46,13 +46,14 @@ type Plan struct {
 
 // Context carries config and flags through the workflow.
 type Context struct {
-	Config *config.Config
-	DryRun bool
-	Plan   Plan
+	Config  *config.Config
+	DryRun  bool
+	Comment string // pre-set release comment (from --comment flag)
+	Plan    Plan
 }
 
 // Run executes the full release workflow: Check → Gather → Ask → Execute.
-func Run(cfg *config.Config, dryRun bool) error {
+func Run(cfg *config.Config, dryRun bool, comment ...string) error {
 	// Binary projects run goreleaser which requires a clean git state.
 	if cfg.IsBinary() {
 		if err := checkDistClean(cfg.Dir); err != nil {
@@ -61,6 +62,9 @@ func Run(cfg *config.Config, dryRun bool) error {
 	}
 
 	ctx := &Context{Config: cfg, DryRun: dryRun}
+	if len(comment) > 0 && comment[0] != "" {
+		ctx.Comment = comment[0]
+	}
 
 	// 1. Precheck — fast checks before user interaction
 	if len(cfg.Precheck) > 0 {

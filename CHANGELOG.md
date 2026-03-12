@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.1.54] - 2026-03-12
+
+ - Add colored banner to md2html and auto-prefix worktree names with WT
+
 ## [0.1.53] - 2026-03-12
 
  - Improving workree release

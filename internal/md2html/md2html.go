@@ -4,6 +4,7 @@ package md2html
 import (
 	"bytes"
 	"embed"
+	"errors"
 	"fmt"
 	"html/template"
 	"os"
@@ -80,6 +81,9 @@ func Run(cfg Config) error {
 
 	// Convert .md files from Src directory.
 	entries, err := os.ReadDir(cfg.Src)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
 	if err != nil {
 		return fmt.Errorf("read %s: %w", cfg.Src, err)
 	}

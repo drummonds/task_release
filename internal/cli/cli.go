@@ -158,7 +158,7 @@ func runInit() {
 func runCheck(args []string) {
 	fs := flag.NewFlagSet("check", flag.ExitOnError)
 	dir := fs.String("dir", ".", "project directory")
-	fs.Parse(args)
+	_ = fs.Parse(args)
 
 	absDir, err := filepath.Abs(*dir)
 	if err != nil {
@@ -178,7 +178,7 @@ func runRelease(args []string) {
 	yes := fs.Bool("yes", false, "auto-confirm all prompts")
 	dir := fs.String("dir", ".", "project directory")
 	comment := fs.String("comment", "", "default release comment (overrides .tp-release-comment)")
-	fs.Parse(args)
+	_ = fs.Parse(args)
 
 	if *yes {
 		prompt.AutoConfirm = true
@@ -290,7 +290,7 @@ func runPages(args []string) {
 	fs := flag.NewFlagSet("pages", flag.ExitOnError)
 	port := fs.Int("port", 8080, "HTTP port")
 	dir := fs.String("dir", ".", "project directory")
-	fs.Parse(args)
+	_ = fs.Parse(args)
 
 	absDir, err := filepath.Abs(*dir)
 	if err != nil {
@@ -326,7 +326,7 @@ func runPagesDeploy(args []string) {
 	dir := fs.String("dir", ".", "project directory")
 	promote := fs.Bool("promote", false, "deploy to main site (skip RC)")
 	all := fs.Bool("all", false, "deploy to both RC and main sites")
-	fs.Parse(args)
+	_ = fs.Parse(args)
 
 	absDir, err := filepath.Abs(*dir)
 	if err != nil {
@@ -386,7 +386,7 @@ func runPagesPromote(args []string) {
 	fs := flag.NewFlagSet("pages promote", flag.ExitOnError)
 	dryRun := fs.Bool("dry-run", false, "show what would happen without deploying")
 	dir := fs.String("dir", ".", "project directory")
-	fs.Parse(args)
+	_ = fs.Parse(args)
 
 	absDir, err := filepath.Abs(*dir)
 	if err != nil {
@@ -455,7 +455,7 @@ func runPagesPromote(args []string) {
 func runPagesConfig(args []string) {
 	fs := flag.NewFlagSet("pages config", flag.ExitOnError)
 	dir := fs.String("dir", ".", "project directory")
-	fs.Parse(args)
+	_ = fs.Parse(args)
 
 	absDir, err := filepath.Abs(*dir)
 	if err != nil {
@@ -490,7 +490,7 @@ func runPagesConfig(args []string) {
 func runPagesCombine(args []string) {
 	fs := flag.NewFlagSet("pages combine", flag.ExitOnError)
 	dir := fs.String("dir", ".", "project directory")
-	fs.Parse(args)
+	_ = fs.Parse(args)
 
 	absDir, err := filepath.Abs(*dir)
 	if err != nil {
@@ -510,7 +510,7 @@ func runMd2html(args []string) {
 	label := fs.String("label", "Internal Docs", "breadcrumb label for this doc set")
 	project := fs.String("project", "", "project name (auto-detected from go.mod if empty)")
 	file := fs.String("file", "", "single markdown file to convert (overrides --src)")
-	fs.Parse(args)
+	_ = fs.Parse(args)
 
 	cfg := md2html.Config{
 		Src:     *src,
@@ -528,7 +528,7 @@ func runMd2html(args []string) {
 func runMdUpdate(args []string) {
 	fs := flag.NewFlagSet("md_update", flag.ExitOnError)
 	dst := fs.String("dst", "", "directory to scan for HTML pages (default: file's directory)")
-	fs.Parse(args)
+	_ = fs.Parse(args)
 
 	file := fs.Arg(0)
 	if file == "" {
@@ -551,7 +551,7 @@ func runReadme(args []string) {
 	fs := flag.NewFlagSet("readme", flag.ExitOnError)
 	ver := fs.String("version", "", "version string to insert (e.g. v0.1.46)")
 	dir := fs.String("dir", ".", "project directory")
-	fs.Parse(args)
+	_ = fs.Parse(args)
 
 	absDir, err := filepath.Abs(*dir)
 	if err != nil {
@@ -569,7 +569,7 @@ func runReadme(args []string) {
 func runReleaseVersionUpdate(args []string) {
 	fs := flag.NewFlagSet("release:version-update", flag.ExitOnError)
 	init := fs.Bool("init", false, "generate a sample release:version-update task for Taskfile.yml")
-	fs.Parse(args)
+	_ = fs.Parse(args)
 
 	if !*init {
 		fmt.Fprintf(os.Stderr, "Usage: task-plus release:version-update --init\n")

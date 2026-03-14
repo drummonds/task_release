@@ -138,7 +138,7 @@ func LatestPrereleaseFromTags(tags []string, base Version, name string) (Version
 		if preName != name {
 			continue
 		}
-		if !found || v.Less(best) == false {
+		if !found || !v.Less(best) {
 			best = v
 			found = true
 		}

@@ -35,7 +35,7 @@ func renderTerm() {
 	// Clear screen
 	fmt.Print("\033[2J\033[H")
 
-	agent.CleanStale()
+	_, _ = agent.CleanStale()
 	reg, err := agent.Load()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading registry: %v\n", err)

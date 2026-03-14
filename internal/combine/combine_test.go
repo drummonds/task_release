@@ -13,14 +13,14 @@ func TestRun_CombinesDocsContent(t *testing.T) {
 	docsRepoDir := filepath.Join(parent, "myproject-docs")
 
 	// Set up main project
-	os.MkdirAll(projectDir, 0755)
-	os.WriteFile(filepath.Join(projectDir, "task-plus.yml"), []byte("type: library\n"), 0644)
+	_ = os.MkdirAll(projectDir, 0755)
+	_ = os.WriteFile(filepath.Join(projectDir, "task-plus.yml"), []byte("type: library\n"), 0644)
 
 	// Set up -docs repo with content
-	os.MkdirAll(filepath.Join(docsRepoDir, "docs"), 0755)
-	os.WriteFile(filepath.Join(docsRepoDir, "task-plus.yml"), []byte("type: docs\nparent_repo: ../myproject\npages_deploy:\n  - type: statichost\n    site: h3-myproject\n"), 0644)
-	os.WriteFile(filepath.Join(docsRepoDir, "docs", "index.html"), []byte("<html>docs</html>"), 0644)
-	os.WriteFile(filepath.Join(docsRepoDir, "DOC-README.md"), []byte("# Docs README"), 0644)
+	_ = os.MkdirAll(filepath.Join(docsRepoDir, "docs"), 0755)
+	_ = os.WriteFile(filepath.Join(docsRepoDir, "task-plus.yml"), []byte("type: docs\nparent_repo: ../myproject\npages_deploy:\n  - type: statichost\n    site: h3-myproject\n"), 0644)
+	_ = os.WriteFile(filepath.Join(docsRepoDir, "docs", "index.html"), []byte("<html>docs</html>"), 0644)
+	_ = os.WriteFile(filepath.Join(docsRepoDir, "DOC-README.md"), []byte("# Docs README"), 0644)
 
 	if err := Run(projectDir); err != nil {
 		t.Fatal(err)
@@ -49,7 +49,7 @@ func TestRun_CombinesDocsContent(t *testing.T) {
 
 func TestRun_DocsProjectErrors(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte("type: docs\nparent_repo: ../foo\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte("type: docs\nparent_repo: ../foo\n"), 0644)
 
 	err := Run(dir)
 	if err == nil {
@@ -59,7 +59,7 @@ func TestRun_DocsProjectErrors(t *testing.T) {
 
 func TestRun_NoDocsRepoErrors(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte("type: library\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte("type: library\n"), 0644)
 
 	err := Run(dir)
 	if err == nil {
@@ -73,14 +73,14 @@ func TestRun_SkipsExistingFiles(t *testing.T) {
 	docsRepoDir := filepath.Join(parent, "myproject-docs")
 
 	// Set up main project with existing README.md
-	os.MkdirAll(projectDir, 0755)
-	os.WriteFile(filepath.Join(projectDir, "task-plus.yml"), []byte("type: library\n"), 0644)
-	os.WriteFile(filepath.Join(projectDir, "README.md"), []byte("# Original"), 0644)
+	_ = os.MkdirAll(projectDir, 0755)
+	_ = os.WriteFile(filepath.Join(projectDir, "task-plus.yml"), []byte("type: library\n"), 0644)
+	_ = os.WriteFile(filepath.Join(projectDir, "README.md"), []byte("# Original"), 0644)
 
 	// Set up -docs repo
-	os.MkdirAll(filepath.Join(docsRepoDir, "docs"), 0755)
-	os.WriteFile(filepath.Join(docsRepoDir, "task-plus.yml"), []byte("type: docs\nparent_repo: ../myproject\n"), 0644)
-	os.WriteFile(filepath.Join(docsRepoDir, "DOC-README.md"), []byte("# Docs version"), 0644)
+	_ = os.MkdirAll(filepath.Join(docsRepoDir, "docs"), 0755)
+	_ = os.WriteFile(filepath.Join(docsRepoDir, "task-plus.yml"), []byte("type: docs\nparent_repo: ../myproject\n"), 0644)
+	_ = os.WriteFile(filepath.Join(docsRepoDir, "DOC-README.md"), []byte("# Docs version"), 0644)
 
 	if err := Run(projectDir); err != nil {
 		t.Fatal(err)

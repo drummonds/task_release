@@ -70,7 +70,7 @@ func Run(cfg *config.Config, dryRun bool, comment ...string) error {
 	if len(cfg.Precheck) > 0 {
 		fmt.Println("\n=== Precheck ===")
 		if err := runCmds(ctx, cfg.Precheck); err != nil {
-			return fmt.Errorf("Precheck: %w", err)
+			return fmt.Errorf("precheck: %w", err)
 		}
 	}
 
@@ -83,7 +83,7 @@ func Run(cfg *config.Config, dryRun bool, comment ...string) error {
 	// 3. Ask — all user prompts
 	fmt.Println("\n=== Questions ===")
 	if err := Ask(ctx); err != nil {
-		return fmt.Errorf("Questions: %w", err)
+		return fmt.Errorf("questions: %w", err)
 	}
 
 	// 4. Check — full checks (including tests) after questions

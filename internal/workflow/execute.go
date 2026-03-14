@@ -34,11 +34,11 @@ func (rb *rollback) undo() {
 	}
 	if rb.tagCreated != "" {
 		fmt.Printf("  Rollback: deleting tag %s\n", rb.tagCreated)
-		git.Run(rb.dir, "tag", "-d", rb.tagCreated)
+		_, _ = git.Run(rb.dir, "tag", "-d", rb.tagCreated)
 	}
 	if rb.origHEAD != "" {
 		fmt.Printf("  Rollback: resetting to %s\n", rb.origHEAD)
-		git.Run(rb.dir, "reset", "--hard", rb.origHEAD)
+		_, _ = git.Run(rb.dir, "reset", "--hard", rb.origHEAD)
 	}
 }
 
@@ -232,12 +232,12 @@ func executeSteps(ctx *Context, rb *rollback) error {
 					return err
 				}
 				// Move tag to include WASM commit
-				git.Run(ctx.Config.Dir, "tag", "-d", p.Version.String())
+				_, _ = git.Run(ctx.Config.Dir, "tag", "-d", p.Version.String())
 				tagMsg := p.Version.String()
 				if p.Comment != "" {
 					tagMsg = p.Comment
 				}
-				git.Tag(ctx.Config.Dir, p.Version.String(), tagMsg)
+				_ = git.Tag(ctx.Config.Dir, p.Version.String(), tagMsg)
 			}
 		}
 	}

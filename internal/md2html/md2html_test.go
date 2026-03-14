@@ -11,9 +11,9 @@ func TestDocsRootURL(t *testing.T) {
 	root := t.TempDir()
 	docs := filepath.Join(root, "docs")
 	research := filepath.Join(docs, "research")
-	os.MkdirAll(research, 0755)
+	_ = os.MkdirAll(research, 0755)
 
-	os.WriteFile(filepath.Join(docs, "index.md"), []byte("# Index"), 0644)
+	_ = os.WriteFile(filepath.Join(docs, "index.md"), []byte("# Index"), 0644)
 
 	if got := docsRootURL(docs); got != "index.html" {
 		t.Errorf("docsRootURL(docs) = %q, want %q", got, "index.html")
@@ -27,15 +27,15 @@ func TestDocsRootURL(t *testing.T) {
 func TestMarkerReplacementEndToEnd(t *testing.T) {
 	dir := t.TempDir()
 	dst := filepath.Join(dir, "out")
-	os.MkdirAll(dst, 0755)
+	_ = os.MkdirAll(dst, 0755)
 
 	// Create an existing HTML page so auto:pages has something to list.
-	os.WriteFile(filepath.Join(dst, "guide.html"),
+	_ = os.WriteFile(filepath.Join(dst, "guide.html"),
 		[]byte("<html><head><title>Guide</title></head><body></body></html>"), 0644)
 
 	// Create a markdown file with markers.
 	md := "# My Docs\n\n<!-- auto:pages -->\n<!-- /auto:pages -->\n\nSome text.\n"
-	os.WriteFile(filepath.Join(dir, "index.md"), []byte(md), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "index.md"), []byte(md), 0644)
 
 	cfg := Config{
 		Src:  dir,

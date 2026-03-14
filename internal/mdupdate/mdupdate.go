@@ -162,7 +162,7 @@ func scanPagesGrouped(dst string) []pageGroup {
 	var rootPages []pageInfo
 	subDirs := make(map[string][]pageInfo)
 
-	filepath.WalkDir(dst, func(path string, d fs.DirEntry, err error) error {
+	_ = filepath.WalkDir(dst, func(path string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
 			return nil
 		}

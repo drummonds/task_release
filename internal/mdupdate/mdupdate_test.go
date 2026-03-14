@@ -17,9 +17,9 @@ func TestGeneratePagesNav(t *testing.T) {
 		{"beta.html", "Beta Page"},
 	} {
 		content := "<html><head><title>" + f.title + "</title></head><body></body></html>"
-		os.WriteFile(filepath.Join(dir, f.name), []byte(content), 0644)
+		_ = os.WriteFile(filepath.Join(dir, f.name), []byte(content), 0644)
 	}
-	os.WriteFile(filepath.Join(dir, "index.html"), []byte("<html></html>"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "index.html"), []byte("<html></html>"), 0644)
 
 	nav := GeneratePagesNav(dir)
 	if !strings.Contains(nav, "Alpha Page") {
@@ -42,13 +42,13 @@ func TestGeneratePagesNav(t *testing.T) {
 func TestGeneratePagesNavSubdirs(t *testing.T) {
 	dir := t.TempDir()
 
-	os.WriteFile(filepath.Join(dir, "guide.html"),
+	_ = os.WriteFile(filepath.Join(dir, "guide.html"),
 		[]byte("<html><head><title>Guide</title></head></html>"), 0644)
 
-	os.MkdirAll(filepath.Join(dir, "research"), 0755)
-	os.WriteFile(filepath.Join(dir, "research", "results.html"),
+	_ = os.MkdirAll(filepath.Join(dir, "research"), 0755)
+	_ = os.WriteFile(filepath.Join(dir, "research", "results.html"),
 		[]byte("<html><head><title>Results</title></head></html>"), 0644)
-	os.WriteFile(filepath.Join(dir, "research", "notes.html"),
+	_ = os.WriteFile(filepath.Join(dir, "research", "notes.html"),
 		[]byte("<html><head><title>Notes</title></head></html>"), 0644)
 
 	nav := GeneratePagesNav(dir)
@@ -109,13 +109,13 @@ func TestUpdate(t *testing.T) {
 	dir := t.TempDir()
 
 	// Create an HTML page so auto:pages has something to list.
-	os.WriteFile(filepath.Join(dir, "guide.html"),
+	_ = os.WriteFile(filepath.Join(dir, "guide.html"),
 		[]byte("<html><head><title>Guide</title></head></html>"), 0644)
 
 	// Markdown with markers.
 	md := "# My Docs\n\n## Intro\n\n<!-- auto:toc -->\n<!-- /auto:toc -->\n\n<!-- auto:pages -->\n<!-- /auto:pages -->\n"
 	path := filepath.Join(dir, "index.md")
-	os.WriteFile(path, []byte(md), 0644)
+	_ = os.WriteFile(path, []byte(md), 0644)
 
 	if err := Update(path, Options{PagesDir: dir}); err != nil {
 		t.Fatalf("Update: %v", err)

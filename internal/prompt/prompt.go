@@ -21,7 +21,7 @@ func SetIO(r io.Reader, w io.Writer) {
 
 // Confirm asks a yes/no question. Default is yes.
 func Confirm(msg string) bool {
-	fmt.Fprintf(writer, "%s [Y/n] ", msg)
+	_, _ = fmt.Fprintf(writer, "%s [Y/n] ", msg)
 	s := bufio.NewScanner(reader)
 	if !s.Scan() {
 		return false
@@ -33,9 +33,9 @@ func Confirm(msg string) bool {
 // AskString prompts for a string with a default value.
 func AskString(msg, def string) string {
 	if def != "" {
-		fmt.Fprintf(writer, "%s [%s]: ", msg, def)
+		_, _ = fmt.Fprintf(writer, "%s [%s]: ", msg, def)
 	} else {
-		fmt.Fprintf(writer, "%s: ", msg)
+		_, _ = fmt.Fprintf(writer, "%s: ", msg)
 	}
 	s := bufio.NewScanner(reader)
 	if !s.Scan() {
@@ -54,7 +54,7 @@ var AutoConfirm bool
 // ConfirmOrAuto returns true immediately if AutoConfirm is set.
 func ConfirmOrAuto(msg string) bool {
 	if AutoConfirm {
-		fmt.Fprintf(writer, "%s [Y/n] y (auto)\n", msg)
+		_, _ = fmt.Fprintf(writer, "%s [Y/n] y (auto)\n", msg)
 		return true
 	}
 	return Confirm(msg)
@@ -63,7 +63,7 @@ func ConfirmOrAuto(msg string) bool {
 // AskStringOrAuto returns the default immediately if AutoConfirm is set.
 func AskStringOrAuto(msg, def string) string {
 	if AutoConfirm {
-		fmt.Fprintf(writer, "%s [%s]: %s (auto)\n", msg, def, def)
+		_, _ = fmt.Fprintf(writer, "%s [%s]: %s (auto)\n", msg, def, def)
 		return def
 	}
 	return AskString(msg, def)

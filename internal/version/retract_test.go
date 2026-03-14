@@ -18,7 +18,7 @@ retract (
 	v1.37.4 // Accidentally published
 )
 `
-	os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gomod), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gomod), 0644)
 
 	got, err := ParseRetracted(dir)
 	if err != nil {
@@ -43,7 +43,7 @@ go 1.25.0
 
 retract v0.1.9 // broken
 `
-	os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gomod), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "go.mod"), []byte(gomod), 0644)
 
 	got, err := ParseRetracted(dir)
 	if err != nil {

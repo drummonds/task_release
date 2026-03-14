@@ -33,7 +33,7 @@ func listReleasesForgejo(remoteURL string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("forgejo API: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -74,7 +74,7 @@ func deleteReleaseForgejo(remoteURL, tag string) error {
 	if err != nil {
 		return fmt.Errorf("forgejo API: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -98,7 +98,7 @@ func deleteReleaseForgejo(remoteURL, tag string) error {
 	if err != nil {
 		return fmt.Errorf("forgejo API delete release: %w", err)
 	}
-	delResp.Body.Close()
+	_ = delResp.Body.Close()
 	if delResp.StatusCode != http.StatusNoContent && delResp.StatusCode != http.StatusOK {
 		return fmt.Errorf("forgejo API delete release %s: %s", tag, delResp.Status)
 	}
@@ -115,7 +115,7 @@ func deleteReleaseForgejo(remoteURL, tag string) error {
 	if err != nil {
 		return fmt.Errorf("forgejo API delete tag: %w", err)
 	}
-	tagResp.Body.Close()
+	_ = tagResp.Body.Close()
 	// Tag deletion may return 204 or 404 (already gone via release delete)
 
 	return nil

@@ -35,7 +35,7 @@ func TestLoadDefaults(t *testing.T) {
 
 func TestDetectBinary(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, ".goreleaser.yaml"), []byte("{}"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, ".goreleaser.yaml"), []byte("{}"), 0644)
 
 	cfg, err := Load(dir)
 	if err != nil {
@@ -48,7 +48,7 @@ func TestDetectBinary(t *testing.T) {
 
 func TestDetectTaskfile(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "Taskfile.yml"), []byte("{}"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "Taskfile.yml"), []byte("{}"), 0644)
 
 	cfg, err := Load(dir)
 	if err != nil {
@@ -61,7 +61,7 @@ func TestDetectTaskfile(t *testing.T) {
 
 func TestDetectCheckWithGoMod(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example.com/test\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example.com/test\n"), 0644)
 
 	cfg, err := Load(dir)
 	if err != nil {
@@ -74,7 +74,7 @@ func TestDetectCheckWithGoMod(t *testing.T) {
 
 func TestDetectSimpleChangelog(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "CHANGELOG.md"), []byte("# Changelog\n\n## 0.1.0 2026-01-01\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "CHANGELOG.md"), []byte("# Changelog\n\n## 0.1.0 2026-01-01\n"), 0644)
 
 	cfg, err := Load(dir)
 	if err != nil {
@@ -101,7 +101,7 @@ func TestInstallNil(t *testing.T) {
 
 func TestInstallFromYAML(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte("install: true\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte("install: true\n"), 0644)
 
 	cfg, err := Load(dir)
 	if err != nil {
@@ -126,7 +126,7 @@ tasks:
     cmds:
       - go build ./...
 `
-	os.WriteFile(filepath.Join(dir, "Taskfile.yml"), []byte(taskfile), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "Taskfile.yml"), []byte(taskfile), 0644)
 
 	cfg, err := Load(dir)
 	if err != nil {
@@ -148,7 +148,7 @@ tasks:
     cmds:
       - go build ./...
 `
-	os.WriteFile(filepath.Join(dir, "Taskfile.yml"), []byte(taskfile), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "Taskfile.yml"), []byte(taskfile), 0644)
 
 	cfg, err := Load(dir)
 	if err != nil {
@@ -167,7 +167,7 @@ tasks:
     cmds:
       - go build ./...
 `
-	os.WriteFile(filepath.Join(dir, "Taskfile.yml"), []byte(taskfile), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "Taskfile.yml"), []byte(taskfile), 0644)
 
 	cfg, err := Load(dir)
 	if err != nil {
@@ -186,7 +186,7 @@ tasks:
     cmds:
       - go test ./...
 `
-	os.WriteFile(filepath.Join(dir, "Taskfile.yml"), []byte(taskfile), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "Taskfile.yml"), []byte(taskfile), 0644)
 
 	cfg, err := Load(dir)
 	if err != nil {
@@ -199,7 +199,7 @@ tasks:
 
 func TestPagesBuildFromYAML(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte("pages_build: [\"make docs\"]\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte("pages_build: [\"make docs\"]\n"), 0644)
 
 	cfg, err := Load(dir)
 	if err != nil {
@@ -217,7 +217,7 @@ func TestPagesDeployFromYAML(t *testing.T) {
   - type: statichost
     site: myproject
 `
-	os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte(yaml), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte(yaml), 0644)
 
 	cfg, err := Load(dir)
 	if err != nil {
@@ -253,7 +253,7 @@ func TestPagesDeployEmpty(t *testing.T) {
 
 func TestDetectLanguagesGoOnly(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example.com/test\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example.com/test\n"), 0644)
 
 	cfg, err := Load(dir)
 	if err != nil {
@@ -272,7 +272,7 @@ func TestDetectLanguagesGoOnly(t *testing.T) {
 
 func TestDetectLanguagesPythonOnly(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte("[project]\nname = \"test\"\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte("[project]\nname = \"test\"\n"), 0644)
 
 	cfg, err := Load(dir)
 	if err != nil {
@@ -291,8 +291,8 @@ func TestDetectLanguagesPythonOnly(t *testing.T) {
 
 func TestDetectLanguagesBoth(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example.com/test\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte("[project]\nname = \"test\"\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example.com/test\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte("[project]\nname = \"test\"\n"), 0644)
 
 	cfg, err := Load(dir)
 	if err != nil {
@@ -329,7 +329,7 @@ func TestDetectLanguagesNone(t *testing.T) {
 
 func TestLanguagesFromYAML(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte("languages: [go, python]\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte("languages: [go, python]\n"), 0644)
 
 	cfg, err := Load(dir)
 	if err != nil {
@@ -343,9 +343,9 @@ func TestLanguagesFromYAML(t *testing.T) {
 func TestLanguagesYAMLOverridesDetection(t *testing.T) {
 	dir := t.TempDir()
 	// Has go.mod and pyproject.toml, but YAML says only python
-	os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example.com/test\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte("[project]\nname = \"test\"\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte("languages: [python]\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example.com/test\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte("[project]\nname = \"test\"\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte("languages: [python]\n"), 0644)
 
 	cfg, err := Load(dir)
 	if err != nil {
@@ -361,7 +361,7 @@ func TestLanguagesYAMLOverridesDetection(t *testing.T) {
 
 func TestPypiPackageName(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte("[project]\nname = \"my-package\"\nversion = \"0.1.0\"\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte("[project]\nname = \"my-package\"\nversion = \"0.1.0\"\n"), 0644)
 	cfg := &Config{Dir: dir}
 	if got := cfg.PypiPackageName(); got != "my-package" {
 		t.Errorf("PypiPackageName() = %q, want %q", got, "my-package")
@@ -370,7 +370,7 @@ func TestPypiPackageName(t *testing.T) {
 
 func TestPypiPackageNameNoEquals(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte("[project]\nname=\"lofigui\"\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte("[project]\nname=\"lofigui\"\n"), 0644)
 	cfg := &Config{Dir: dir}
 	if got := cfg.PypiPackageName(); got != "lofigui" {
 		t.Errorf("PypiPackageName() = %q, want %q", got, "lofigui")
@@ -388,7 +388,7 @@ func TestPypiPackageNameMissing(t *testing.T) {
 func TestPypiPackageNameWrongSection(t *testing.T) {
 	dir := t.TempDir()
 	// name under [tool.poetry], not [project]
-	os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte("[tool.poetry]\nname = \"wrong\"\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte("[tool.poetry]\nname = \"wrong\"\n"), 0644)
 	cfg := &Config{Dir: dir}
 	if got := cfg.PypiPackageName(); got != "" {
 		t.Errorf("PypiPackageName() = %q, want empty (wrong section)", got)
@@ -397,7 +397,7 @@ func TestPypiPackageNameWrongSection(t *testing.T) {
 
 func TestUpdatePyprojectVersion(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte("[project]\nname = \"my-pkg\"\nversion = \"0.1.0\"\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte("[project]\nname = \"my-pkg\"\nversion = \"0.1.0\"\n"), 0644)
 	cfg := &Config{Dir: dir}
 	if err := cfg.UpdatePyprojectVersion("0.2.0"); err != nil {
 		t.Fatal(err)
@@ -410,7 +410,7 @@ func TestUpdatePyprojectVersion(t *testing.T) {
 
 func TestUpdatePyprojectVersionNoEquals(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte("[project]\nname=\"my-pkg\"\nversion=\"0.1.0\"\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte("[project]\nname=\"my-pkg\"\nversion=\"0.1.0\"\n"), 0644)
 	cfg := &Config{Dir: dir}
 	if err := cfg.UpdatePyprojectVersion("1.0.0"); err != nil {
 		t.Fatal(err)
@@ -423,7 +423,7 @@ func TestUpdatePyprojectVersionNoEquals(t *testing.T) {
 
 func TestUpdatePyprojectVersionWrongSection(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte("[tool.poetry]\nversion = \"0.1.0\"\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte("[tool.poetry]\nversion = \"0.1.0\"\n"), 0644)
 	cfg := &Config{Dir: dir}
 	err := cfg.UpdatePyprojectVersion("0.2.0")
 	if err == nil {
@@ -433,7 +433,7 @@ func TestUpdatePyprojectVersionWrongSection(t *testing.T) {
 
 func TestUpdatePyprojectVersionMissing(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte("[project]\nname = \"my-pkg\"\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte("[project]\nname = \"my-pkg\"\n"), 0644)
 	cfg := &Config{Dir: dir}
 	err := cfg.UpdatePyprojectVersion("0.2.0")
 	if err == nil {
@@ -448,7 +448,7 @@ func TestPagesDeployRCSite(t *testing.T) {
     site: h3-gobank
     rc_site: h3-gobank-rc
 `
-	os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte(yaml), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte(yaml), 0644)
 
 	cfg, err := Load(dir)
 	if err != nil {
@@ -475,7 +475,7 @@ func TestPagesDeployNoRCSite(t *testing.T) {
   - type: statichost
     site: h3-myproject
 `
-	os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte(yaml), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte(yaml), 0644)
 
 	cfg, err := Load(dir)
 	if err != nil {
@@ -495,7 +495,7 @@ cleanup:
   keep_patches: 3
   keep_minors: 10
 `
-	os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte(yaml), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte(yaml), 0644)
 
 	cfg, err := Load(dir)
 	if err != nil {

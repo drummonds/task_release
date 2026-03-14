@@ -26,6 +26,6 @@ func Read(dir string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	os.Remove(p)
+	_ = os.Remove(p)
 	return strings.TrimSpace(string(data)), nil
 }

@@ -63,12 +63,12 @@ func withLock(fn func() error) error {
 	if err != nil {
 		return fmt.Errorf("open lock: %w", err)
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck // best-effort cleanup
 
 	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX); err != nil {
 		return fmt.Errorf("flock: %w", err)
 	}
-	defer syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+	defer func() { _ = syscall.Flock(int(f.Fd()), syscall.LOCK_UN) }()
 
 	return fn()
 }

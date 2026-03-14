@@ -16,7 +16,7 @@ func ModulePath(dir string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("open go.mod: %w", err)
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck // read-only file
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
@@ -37,7 +37,7 @@ func ParseRetracted(dir string) ([]Version, error) {
 	if err != nil {
 		return nil, nil // no go.mod → no retractions
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck // read-only file
 
 	var retracted []Version
 	inBlock := false

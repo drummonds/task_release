@@ -254,6 +254,9 @@ func checkConfig(dir string) []finding {
 		}
 	}
 
+	// Check for unsupported md2html flags in pages_build
+	findings = append(findings, checkMd2htmlFlags(dir, "task-plus.yml")...)
+
 	// Validate deploy targets
 	for i, t := range cfg.PagesDeploy {
 		switch t.Type {
@@ -264,9 +267,10 @@ func checkConfig(dir string) []finding {
 			continue
 		}
 		if t.Type == "statichost" {
-			if t.Site == "" {
+			switch t.Site {
+			case "":
 				findings = append(findings, finding{levelError, fmt.Sprintf("pages_deploy[%d]: statichost requires 'site' field", i)})
-			} else if t.Site == "CHANGEME" {
+			case "CHANGEME":
 				findings = append(findings, finding{levelWarn, fmt.Sprintf("pages_deploy[%d]: site is still 'CHANGEME'", i)})
 			}
 		}
@@ -315,6 +319,19 @@ func checkTaskfile(dir string) []finding {
 			findings = append(findings, finding{levelWarn, fmt.Sprintf("Has '%s' — rename to '%s' (subject:action convention)", inv.inverted, inv.preferred)})
 		}
 	}
+
+	// Check Go projects have a lint task using golangci-lint
+	cfg, _ := config.Load(dir)
+	if cfg != nil && cfg.HasGo() {
+		if config.HasTaskfileTask(dir, "lint") {
+			findings = append(findings, finding{levelOK, "lint task found (golangci-lint)"})
+		} else {
+			findings = append(findings, finding{levelWarn, "Go project missing 'lint' task — add golangci-lint (https://golangci-lint.run/)"})
+		}
+	}
+
+	// Check for unsupported md2html flags
+	findings = append(findings, checkMd2htmlFlags(dir, "Taskfile.yml")...)
 
 	// Check .gitignore includes .task/ (taskfile checksum cache)
 	if gitignoreContains(dir, ".task") {
@@ -551,6 +568,29 @@ func extractRedirectTarget(content string) string {
 		rest = rest[:end]
 	}
 	return rest
+}
+
+// unsupportedMd2htmlFlags lists flags that don't exist in md2html.
+var unsupportedMd2htmlFlags = []string{"--index"}
+
+// checkMd2htmlFlags scans a file for md2html invocations with unsupported flags.
+func checkMd2htmlFlags(dir, filename string) []finding {
+	data, err := os.ReadFile(filepath.Join(dir, filename))
+	if err != nil {
+		return nil
+	}
+	var findings []finding
+	for i, line := range strings.Split(string(data), "\n") {
+		if !strings.Contains(line, "md2html") {
+			continue
+		}
+		for _, flag := range unsupportedMd2htmlFlags {
+			if strings.Contains(line, flag) {
+				findings = append(findings, finding{levelError, fmt.Sprintf("%s:%d: unsupported md2html flag %q", filename, i+1, flag)})
+			}
+		}
+	}
+	return findings
 }
 
 // gitignoreContains returns true if .gitignore contains a line matching the pattern.

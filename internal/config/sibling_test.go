@@ -10,9 +10,9 @@ func TestResolveDocsRepo_Convention(t *testing.T) {
 	parent := t.TempDir()
 	projectDir := filepath.Join(parent, "myproject")
 	docsDir := filepath.Join(parent, "myproject-docs")
-	os.MkdirAll(projectDir, 0755)
-	os.MkdirAll(docsDir, 0755)
-	os.WriteFile(filepath.Join(docsDir, "task-plus.yml"), []byte("type: docs\n"), 0644)
+	_ = os.MkdirAll(projectDir, 0755)
+	_ = os.MkdirAll(docsDir, 0755)
+	_ = os.WriteFile(filepath.Join(docsDir, "task-plus.yml"), []byte("type: docs\n"), 0644)
 
 	cfg := &Config{Dir: projectDir}
 	got := cfg.ResolveDocsRepo()
@@ -25,9 +25,9 @@ func TestResolveDocsRepo_Explicit(t *testing.T) {
 	parent := t.TempDir()
 	projectDir := filepath.Join(parent, "myproject")
 	customDocs := filepath.Join(parent, "custom-docs")
-	os.MkdirAll(projectDir, 0755)
-	os.MkdirAll(customDocs, 0755)
-	os.WriteFile(filepath.Join(customDocs, "task-plus.yml"), []byte("type: docs\n"), 0644)
+	_ = os.MkdirAll(projectDir, 0755)
+	_ = os.MkdirAll(customDocs, 0755)
+	_ = os.WriteFile(filepath.Join(customDocs, "task-plus.yml"), []byte("type: docs\n"), 0644)
 
 	cfg := &Config{Dir: projectDir, DocsRepo: "../custom-docs"}
 	got := cfg.ResolveDocsRepo()
@@ -49,9 +49,9 @@ func TestResolveParentRepo_Convention(t *testing.T) {
 	parent := t.TempDir()
 	projectDir := filepath.Join(parent, "myproject")
 	docsDir := filepath.Join(parent, "myproject-docs")
-	os.MkdirAll(projectDir, 0755)
-	os.MkdirAll(docsDir, 0755)
-	os.WriteFile(filepath.Join(projectDir, "go.mod"), []byte("module example.com/myproject\n"), 0644)
+	_ = os.MkdirAll(projectDir, 0755)
+	_ = os.MkdirAll(docsDir, 0755)
+	_ = os.WriteFile(filepath.Join(projectDir, "go.mod"), []byte("module example.com/myproject\n"), 0644)
 
 	cfg := &Config{Dir: docsDir}
 	got := cfg.ResolveParentRepo()
@@ -71,7 +71,7 @@ func TestResolveParentRepo_NotDocsSuffix(t *testing.T) {
 
 func TestIsDocs(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte("type: docs\nparent_repo: ../foo\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte("type: docs\nparent_repo: ../foo\n"), 0644)
 	cfg, err := Load(dir)
 	if err != nil {
 		t.Fatal(err)
@@ -83,7 +83,7 @@ func TestIsDocs(t *testing.T) {
 
 func TestTypeDocsAutoDetect(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte("parent_repo: ../foo\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte("parent_repo: ../foo\n"), 0644)
 	cfg, err := Load(dir)
 	if err != nil {
 		t.Fatal(err)
@@ -98,7 +98,7 @@ func TestHasDocsDir(t *testing.T) {
 	if HasDocsDir(dir) {
 		t.Error("HasDocsDir should be false for empty dir")
 	}
-	os.MkdirAll(filepath.Join(dir, "docs"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "docs"), 0755)
 	if !HasDocsDir(dir) {
 		t.Error("HasDocsDir should be true when docs/ exists")
 	}

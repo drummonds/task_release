@@ -51,7 +51,7 @@ func runWeb() error {
 }
 
 func renderWebDashboard() {
-	agent.CleanStale()
+	_, _ = agent.CleanStale()
 	reg, err := agent.Load()
 	if err != nil {
 		lofigui.Printf("<p class=\"has-text-danger\">Error loading registry: %v</p>", err)

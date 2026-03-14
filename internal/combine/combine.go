@@ -109,7 +109,7 @@ func Run(dir string) error {
 			if err != nil {
 				continue
 			}
-			os.MkdirAll(dstDocs, 0755)
+			_ = os.MkdirAll(dstDocs, 0755)
 			if err := os.WriteFile(dst, data, 0644); err != nil {
 				continue
 			}

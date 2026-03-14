@@ -123,13 +123,12 @@ func runStart(args []string) error {
 		if err := addToGitExclude(wtPath, append([]string{".claude/settings.json", ".vscode/tasks.json"}, sandboxStubs...)); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: could not update git exclude: %v\n", err)
 		}
-		addToGitignore(dir, []string{".claude/settings.json", ".vscode/tasks.json"})
 	}
 
 	// Open VS Code — use --add to add as workspace folder instead of new window
 	if _, err := exec.LookPath("code"); err == nil {
 		fmt.Printf("Opening VS Code workspace folder %s\n", wtPath)
-		exec.Command("code", "--add", wtPath).Run()
+		_ = exec.Command("code", "--add", wtPath).Run()
 	} else {
 		fmt.Printf("Worktree ready at %s (VS Code 'code' not found in PATH)\n", wtPath)
 	}
@@ -216,7 +215,7 @@ func runAgent(args []string) error {
 		case sig := <-sigCh:
 			// Forward signal to claude process
 			if c.Process != nil {
-				c.Process.Signal(sig)
+				_ = c.Process.Signal(sig)
 			}
 			// Wait for it to finish
 			claudeErr = <-doneCh
@@ -230,7 +229,7 @@ func runAgent(args []string) error {
 
 	// Cleanup
 	signal.Stop(sigCh)
-	srv.Shutdown(context.Background())
+	_ = srv.Shutdown(context.Background())
 	if err := agent.Deregister(registryKey); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: deregister: %v\n", err)
 	}
@@ -364,7 +363,7 @@ func closeVSCodeFolder(wtPath string) {
 	}
 	// URI-encode the path for the --remove flag
 	fmt.Printf("Closing VS Code workspace folder %s\n", wtPath)
-	exec.Command(codePath, "--remove", wtPath).Run()
+	_ = exec.Command(codePath, "--remove", wtPath).Run()
 }
 
 func runList(args []string) error {
@@ -522,11 +521,11 @@ func writeVSCodeTasks(wtPath string) error {
 func ensureSettings(wtPath string) {
 	settingsPath := filepath.Join(wtPath, ".claude", "settings.json")
 	if _, err := os.Stat(settingsPath); os.IsNotExist(err) {
-		writeSettings(wtPath)
+		_ = writeSettings(wtPath)
 	}
 	tasksPath := filepath.Join(wtPath, ".vscode", "tasks.json")
 	if _, err := os.Stat(tasksPath); os.IsNotExist(err) {
-		writeVSCodeTasks(wtPath)
+		_ = writeVSCodeTasks(wtPath)
 	}
 }
 
@@ -561,46 +560,17 @@ func addToGitExclude(wtPath string, entries []string) error {
 		if err != nil {
 			return err
 		}
-		defer f.Close()
+		defer f.Close() //nolint:errcheck // best-effort append
 
 		if len(content) > 0 && content[len(content)-1] != '\n' {
-			f.WriteString("\n")
+			_, _ = f.WriteString("\n")
 		}
-		f.WriteString("# task-plus worktree sandbox\n")
+		_, _ = f.WriteString("# task-plus worktree sandbox\n")
 		for _, entry := range toAdd {
-			f.WriteString(entry + "\n")
+			_, _ = f.WriteString(entry + "\n")
 		}
 	}
 	return nil
-}
-
-// addToGitignore appends entries to .gitignore if not already present.
-func addToGitignore(dir string, entries []string) {
-	gitignorePath := filepath.Join(dir, ".gitignore")
-	existing, _ := os.ReadFile(gitignorePath)
-	content := string(existing)
-
-	var toAdd []string
-	for _, entry := range entries {
-		if !strings.Contains(content, entry) {
-			toAdd = append(toAdd, entry)
-		}
-	}
-
-	if len(toAdd) > 0 {
-		f, err := os.OpenFile(gitignorePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			return
-		}
-		defer f.Close()
-
-		if len(content) > 0 && content[len(content)-1] != '\n' {
-			f.WriteString("\n")
-		}
-		for _, entry := range toAdd {
-			f.WriteString(entry + "\n")
-		}
-	}
 }
 
 // lastCommitSubject returns the subject line of the last commit on branch.

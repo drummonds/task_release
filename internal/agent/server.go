@@ -33,11 +33,11 @@ func StartStatusServer(entry AgentEntry, claudeRunning *atomic.Bool) (int, *http
 			Uptime:        time.Since(entry.StartTime).Truncate(time.Second).String(),
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 
 	srv := &http.Server{Handler: mux}
-	go srv.Serve(ln)
+	go func() { _ = srv.Serve(ln) }()
 
 	return port, srv, nil
 }

@@ -65,7 +65,7 @@ func (s *Statichost) checkSiteExists() error {
 	if err != nil {
 		return fmt.Errorf("checking site: %w", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode == http.StatusNotFound {
 		return fmt.Errorf("site %q does not exist on statichost.eu — create it at %s first", s.Site, builderHost)
 	}

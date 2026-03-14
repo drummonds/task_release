@@ -35,7 +35,7 @@ func pollAgent(entry agent.AgentEntry) agent.StatusResponse {
 			LastCommit: "—",
 		}
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var sr agent.StatusResponse
 	if err := json.NewDecoder(resp.Body).Decode(&sr); err != nil {

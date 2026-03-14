@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.1.60] - 2026-03-14
+
+ - Adding linter
+
 ## [0.1.59] - 2026-03-14
 
  - adding RC stage

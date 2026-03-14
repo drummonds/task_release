@@ -1,6 +1,6 @@
 dist/
 /task-plus
 .claude/settings.json
-.vscode/tasks.json
+.vscode
 docs/*.html
 .tp-release-comment

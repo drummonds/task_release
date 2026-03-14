@@ -441,6 +441,51 @@ func TestUpdatePyprojectVersionMissing(t *testing.T) {
 	}
 }
 
+func TestPagesDeployRCSite(t *testing.T) {
+	dir := t.TempDir()
+	yaml := `pages_deploy:
+  - type: statichost
+    site: h3-gobank
+    rc_site: h3-gobank-rc
+`
+	os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte(yaml), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.PagesDeploy) != 1 {
+		t.Fatalf("PagesDeploy = %v, want 1 target", cfg.PagesDeploy)
+	}
+	target := cfg.PagesDeploy[0]
+	if target.Site != "h3-gobank" {
+		t.Errorf("Site = %q, want h3-gobank", target.Site)
+	}
+	if target.RCSite != "h3-gobank-rc" {
+		t.Errorf("RCSite = %q, want h3-gobank-rc", target.RCSite)
+	}
+	if !target.HasRCSite() {
+		t.Error("HasRCSite should return true")
+	}
+}
+
+func TestPagesDeployNoRCSite(t *testing.T) {
+	dir := t.TempDir()
+	yaml := `pages_deploy:
+  - type: statichost
+    site: h3-myproject
+`
+	os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte(yaml), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.PagesDeploy[0].HasRCSite() {
+		t.Error("HasRCSite should return false when rc_site not set")
+	}
+}
+
 func TestLoadYAML(t *testing.T) {
 	dir := t.TempDir()
 	yaml := `type: binary

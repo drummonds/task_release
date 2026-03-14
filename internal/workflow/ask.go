@@ -128,6 +128,9 @@ func Ask(ctx *Context) error {
 			if t.Site != "" {
 				fmt.Printf("(%s)", t.Site)
 			}
+			if t.HasRCSite() {
+				fmt.Printf(" rc:%s", t.RCSite)
+			}
 		}
 		fmt.Println()
 		p.DoDeploy = prompt.ConfirmOrAuto("Deploy documentation?")
@@ -176,6 +179,9 @@ func PrintSummary(ctx *Context) {
 		fmt.Printf("  Deploy docs:")
 		for _, t := range ctx.Config.PagesDeploy {
 			fmt.Printf(" %s", t.Type)
+			if t.HasRCSite() {
+				fmt.Printf(" (RC→main)")
+			}
 		}
 		fmt.Println()
 	}

@@ -12,6 +12,7 @@ import (
 	"github.com/drummonds/task-plus/internal/config"
 	"github.com/drummonds/task-plus/internal/deploy"
 	"github.com/drummonds/task-plus/internal/git"
+	"github.com/drummonds/task-plus/internal/prompt"
 	"github.com/drummonds/task-plus/internal/readme"
 	"github.com/drummonds/task-plus/internal/release"
 	"github.com/drummonds/task-plus/internal/version"
@@ -406,13 +407,42 @@ func executeSteps(ctx *Context, rb *rollback) error {
 
 		docsDir := filepath.Join(deployDir, "docs")
 		for _, target := range deployCfg.PagesDeploy {
-			d, err := deploy.New(target)
-			if err != nil {
-				return err
-			}
-			fmt.Printf("  Deploying to %s...\n", d.Name())
-			if err := d.Deploy(deployDir, docsDir, ctx.DryRun); err != nil {
-				return err
+			if target.HasRCSite() {
+				// RC-first deploy: deploy to RC site, prompt, then optionally promote
+				rcTarget := target
+				rcTarget.Site = target.RCSite
+				rcDep, err := deploy.New(rcTarget)
+				if err != nil {
+					return err
+				}
+				fmt.Printf("  Deploying to RC site %s...\n", rcDep.Name())
+				if err := rcDep.Deploy(deployDir, docsDir, ctx.DryRun); err != nil {
+					return err
+				}
+				rcURL := "https://" + target.RCSite + ".statichost.page/"
+				fmt.Printf("  RC deployed: %s\n", rcURL)
+
+				if prompt.Confirm("RC deployed. Promote to main site?") {
+					mainDep, err := deploy.New(target)
+					if err != nil {
+						return err
+					}
+					fmt.Printf("  Promoting to %s...\n", mainDep.Name())
+					if err := mainDep.Deploy(deployDir, docsDir, ctx.DryRun); err != nil {
+						return err
+					}
+				} else {
+					fmt.Println("  Skipped. Run 'tp pages promote' to deploy later.")
+				}
+			} else {
+				d, err := deploy.New(target)
+				if err != nil {
+					return err
+				}
+				fmt.Printf("  Deploying to %s...\n", d.Name())
+				if err := d.Deploy(deployDir, docsDir, ctx.DryRun); err != nil {
+					return err
+				}
 			}
 		}
 	}

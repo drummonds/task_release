@@ -94,6 +94,9 @@ func GenerateLinksTable(dir string) string {
 	if docURL := docsURL(cfg); docURL != "" {
 		rows = append(rows, struct{ label, url string }{"Documentation", docURL})
 	}
+	if rcURL := rcDocsURL(cfg); rcURL != "" {
+		rows = append(rows, struct{ label, url string }{"RC Documentation", rcURL})
+	}
 
 	// PyPI link for Python projects
 	if cfg.HasPython() {
@@ -159,6 +162,29 @@ func GenerateLinksTable(dir string) string {
 		sb.WriteString("| " + r.label + " | " + r.url + " |\n")
 	}
 	return sb.String()
+}
+
+// rcDocsURL returns the RC documentation URL from statichost config, if configured.
+func rcDocsURL(cfg *config.Config) string {
+	for _, target := range cfg.PagesDeploy {
+		if target.Type == "statichost" && target.HasRCSite() {
+			return "https://" + target.RCSite + ".statichost.page/"
+		}
+	}
+	docsDir := cfg.ResolveDocsRepo()
+	if docsDir == "" {
+		return ""
+	}
+	docsCfg, err := config.Load(docsDir)
+	if err != nil {
+		return ""
+	}
+	for _, target := range docsCfg.PagesDeploy {
+		if target.Type == "statichost" && target.HasRCSite() {
+			return "https://" + target.RCSite + ".statichost.page/"
+		}
+	}
+	return ""
 }
 
 // docsURL returns the documentation URL from statichost config.

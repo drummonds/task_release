@@ -48,7 +48,7 @@ var commands = []struct {
 	{"release", "Interactive release workflow (runs Taskfile post:release if present)"},
 	{"release:version-update", "Scaffold a Taskfile task to update version strings (--init)"},
 	{"repos", "Manage git remotes for release (info, add, remove)"},
-	{"pages", "Serve docs/ directory over HTTP (subcommands: deploy, config, combine)"},
+	{"pages", "Serve docs/ directory over HTTP (subcommands: deploy, promote, config, combine)"},
 	{"md2html", "Convert markdown files to Bulma-styled HTML"},
 	{"md_update", "Update auto-marker sections in a markdown file (toc, pages, links)"},
 	{"readme", "Update auto-marker sections in README.md (links, version)"},
@@ -275,6 +275,9 @@ func runPages(args []string) {
 		case "deploy":
 			runPagesDeploy(args[1:])
 			return
+		case "promote":
+			runPagesPromote(args[1:])
+			return
 		case "config":
 			runPagesConfig(args[1:])
 			return
@@ -321,6 +324,8 @@ func runPagesDeploy(args []string) {
 	fs := flag.NewFlagSet("pages deploy", flag.ExitOnError)
 	dryRun := fs.Bool("dry-run", false, "show what would happen without deploying")
 	dir := fs.String("dir", ".", "project directory")
+	promote := fs.Bool("promote", false, "deploy to main site (skip RC)")
+	all := fs.Bool("all", false, "deploy to both RC and main sites")
 	fs.Parse(args)
 
 	absDir, err := filepath.Abs(*dir)
@@ -342,6 +347,25 @@ func runPagesDeploy(args []string) {
 
 	docsDir := filepath.Join(absDir, "docs")
 	for _, target := range cfg.PagesDeploy {
+		if target.HasRCSite() && !*promote {
+			// Deploy to RC site
+			rcTarget := target
+			rcTarget.Site = target.RCSite
+			d, err := deploy.New(rcTarget)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Printf("Deploying to RC site %s...\n", d.Name())
+			if err := d.Deploy(absDir, docsDir, *dryRun); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+		}
+		if target.HasRCSite() && !*all && !*promote {
+			// RC-only: skip main site
+			continue
+		}
 		d, err := deploy.New(target)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -352,6 +376,76 @@ func runPagesDeploy(args []string) {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
+	}
+	if !*dryRun {
+		fmt.Println("Done.")
+	}
+}
+
+func runPagesPromote(args []string) {
+	fs := flag.NewFlagSet("pages promote", flag.ExitOnError)
+	dryRun := fs.Bool("dry-run", false, "show what would happen without deploying")
+	dir := fs.String("dir", ".", "project directory")
+	fs.Parse(args)
+
+	absDir, err := filepath.Abs(*dir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	cfg, err := config.Load(absDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+		os.Exit(1)
+	}
+
+	if !cfg.HasPagesDeploy() {
+		fmt.Fprintf(os.Stderr, "No pages_deploy targets configured in task-plus.yml\n")
+		os.Exit(1)
+	}
+
+	// Build docs first if configured
+	if cfg.HasPagesBuild() {
+		fmt.Println("Building documentation...")
+		for _, cmd := range cfg.PagesBuild {
+			fmt.Printf("$ %s\n", cmd)
+			if *dryRun {
+				continue
+			}
+			parts := strings.Fields(cmd)
+			c := exec.Command(parts[0], parts[1:]...)
+			c.Dir = absDir
+			c.Stdout = os.Stdout
+			c.Stderr = os.Stderr
+			if err := c.Run(); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: docs build failed: %v\n", err)
+				os.Exit(1)
+			}
+		}
+	}
+
+	promoted := false
+	docsDir := filepath.Join(absDir, "docs")
+	for _, target := range cfg.PagesDeploy {
+		if !target.HasRCSite() {
+			continue
+		}
+		d, err := deploy.New(target)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Promoting to %s...\n", d.Name())
+		if err := d.Deploy(absDir, docsDir, *dryRun); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		promoted = true
+	}
+	if !promoted {
+		fmt.Fprintf(os.Stderr, "No deploy targets with rc_site configured\n")
+		os.Exit(1)
 	}
 	if !*dryRun {
 		fmt.Println("Done.")
@@ -385,6 +479,9 @@ func runPagesConfig(args []string) {
 		fmt.Printf("  %d. type: %s", i+1, t.Type)
 		if t.Site != "" {
 			fmt.Printf(", site: %s", t.Site)
+		}
+		if t.HasRCSite() {
+			fmt.Printf(", rc_site: %s", t.RCSite)
 		}
 		fmt.Println()
 	}

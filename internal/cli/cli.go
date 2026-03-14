@@ -290,6 +290,7 @@ func runPages(args []string) {
 	fs := flag.NewFlagSet("pages", flag.ExitOnError)
 	port := fs.Int("port", 8080, "HTTP port")
 	dir := fs.String("dir", ".", "project directory")
+	site := fs.String("site", "", "site name to serve (selects deploy target's dir)")
 	_ = fs.Parse(args)
 
 	absDir, err := filepath.Abs(*dir)
@@ -314,7 +315,26 @@ func runPages(args []string) {
 		os.Exit(1)
 	}
 
-	if err := pages.Serve(absDir, *port, cfg.PagesBuild); err != nil {
+	// Resolve which directory to serve
+	serveDir := "docs" // default
+	if *site != "" {
+		found := false
+		for _, t := range cfg.PagesDeploy {
+			if t.Site == *site {
+				serveDir = t.DocsDir()
+				found = true
+				break
+			}
+		}
+		if !found {
+			fmt.Fprintf(os.Stderr, "Error: no deploy target with site %q\n", *site)
+			os.Exit(1)
+		}
+	} else if len(cfg.PagesDeploy) > 0 {
+		serveDir = cfg.PagesDeploy[0].DocsDir()
+	}
+
+	if err := pages.Serve(absDir, *port, cfg.PagesBuild, serveDir); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
@@ -345,8 +365,8 @@ func runPagesDeploy(args []string) {
 		os.Exit(1)
 	}
 
-	docsDir := filepath.Join(absDir, "docs")
 	for _, target := range cfg.PagesDeploy {
+		docsDir := filepath.Join(absDir, target.DocsDir())
 		if target.HasRCSite() && !*promote {
 			// Deploy to RC site
 			rcTarget := target
@@ -426,11 +446,11 @@ func runPagesPromote(args []string) {
 	}
 
 	promoted := false
-	docsDir := filepath.Join(absDir, "docs")
 	for _, target := range cfg.PagesDeploy {
 		if !target.HasRCSite() {
 			continue
 		}
+		docsDir := filepath.Join(absDir, target.DocsDir())
 		d, err := deploy.New(target)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -483,6 +503,7 @@ func runPagesConfig(args []string) {
 		if t.HasRCSite() {
 			fmt.Printf(", rc_site: %s", t.RCSite)
 		}
+		fmt.Printf(", dir: %s", t.DocsDir())
 		fmt.Println()
 	}
 }

@@ -1,6 +1,7 @@
 package check
 
 import (
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -226,4 +227,96 @@ func TestCheckTaskfile_NoInversionWhenPreferredExists(t *testing.T) {
 			t.Errorf("should not warn when preferred form also exists")
 		}
 	}
+}
+
+func TestCheckStatichost_NoTargets(t *testing.T) {
+	dir := t.TempDir()
+	findings := checkStatichost(dir)
+	if len(findings) != 1 || findings[0].level != levelOK {
+		t.Errorf("expected 1 OK, got %v", findings)
+	}
+}
+
+func TestCheckStatichost_Reachable(t *testing.T) {
+	dir := t.TempDir()
+	yaml := "pages_deploy:\n  - type: statichost\n    site: h3-task-plus\n"
+	_ = os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte(yaml), 0644)
+
+	// Use a transport that returns 200 for any request
+	orig := statichostHTTPClient
+	statichostHTTPClient = &http.Client{
+		Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			return &http.Response{StatusCode: 200, Body: http.NoBody}, nil
+		}),
+	}
+	defer func() { statichostHTTPClient = orig }()
+
+	findings := checkStatichost(dir)
+	hasOK := false
+	for _, f := range findings {
+		if f.level == levelOK && f.message == "h3-task-plus reachable (200)" {
+			hasOK = true
+		}
+	}
+	if !hasOK {
+		t.Errorf("expected reachable OK, got %v", findings)
+	}
+}
+
+func TestCheckStatichost_Unreachable(t *testing.T) {
+	dir := t.TempDir()
+	yaml := "pages_deploy:\n  - type: statichost\n    site: h3-nonexistent\n"
+	_ = os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte(yaml), 0644)
+
+	orig := statichostHTTPClient
+	statichostHTTPClient = &http.Client{
+		Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			return &http.Response{StatusCode: 404, Body: http.NoBody}, nil
+		}),
+	}
+	defer func() { statichostHTTPClient = orig }()
+
+	findings := checkStatichost(dir)
+	hasWarn := false
+	for _, f := range findings {
+		if f.level == levelWarn && f.message == "h3-nonexistent returned HTTP 404" {
+			hasWarn = true
+		}
+	}
+	if !hasWarn {
+		t.Errorf("expected unreachable warning, got %v", findings)
+	}
+}
+
+func TestCheckStatichost_RCSite(t *testing.T) {
+	dir := t.TempDir()
+	yaml := "pages_deploy:\n  - type: statichost\n    site: h3-mysite\n    rc_site: h3-mysite-rc\n"
+	_ = os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte(yaml), 0644)
+
+	orig := statichostHTTPClient
+	statichostHTTPClient = &http.Client{
+		Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			return &http.Response{StatusCode: 200, Body: http.NoBody}, nil
+		}),
+	}
+	defer func() { statichostHTTPClient = orig }()
+
+	findings := checkStatichost(dir)
+	// Should check both main and RC sites
+	count := 0
+	for _, f := range findings {
+		if f.level == levelOK {
+			count++
+		}
+	}
+	if count != 2 {
+		t.Errorf("expected 2 OK findings (main + rc), got %d from %v", count, findings)
+	}
+}
+
+// roundTripFunc adapts a function to http.RoundTripper.
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
+	return f(r)
 }

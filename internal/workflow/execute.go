@@ -413,8 +413,8 @@ func executeSteps(ctx *Context, rb *rollback) error {
 			}
 		}
 
-		docsDir := filepath.Join(deployDir, "docs")
 		for _, target := range deployCfg.PagesDeploy {
+			docsDir := filepath.Join(deployDir, target.DocsDir())
 			if target.HasRCSite() {
 				// RC-first deploy: deploy to RC site, prompt, then optionally promote
 				rcTarget := target

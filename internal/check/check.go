@@ -3,9 +3,11 @@ package check
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/drummonds/task-plus/internal/config"
 	"github.com/drummonds/task-plus/internal/forge"
@@ -146,6 +148,18 @@ func Run(dir string) error {
 	// --- GitHub Pages ---
 	fmt.Println("\nGitHub Pages")
 	for _, f := range checkGitHubPages(dir) {
+		fmt.Println(f)
+		switch f.level {
+		case levelError:
+			errors++
+		case levelWarn:
+			warnings++
+		}
+	}
+
+	// --- Statichost ---
+	fmt.Println("\nStatichost")
+	for _, f := range checkStatichost(dir) {
 		fmt.Println(f)
 		switch f.level {
 		case levelError:
@@ -609,6 +623,55 @@ func gitignoreContains(dir, pattern string) bool {
 	return false
 }
 
+// statichostHTTPClient is the HTTP client used for statichost reachability checks.
+// Overridable in tests.
+var statichostHTTPClient = &http.Client{Timeout: 5 * time.Second}
+
+func checkStatichost(dir string) []finding {
+	var findings []finding
+
+	cfg, err := config.Load(dir)
+	if err != nil {
+		findings = append(findings, finding{levelWarn, fmt.Sprintf("Cannot load config: %v", err)})
+		return findings
+	}
+
+	var sites []string
+	for _, t := range cfg.PagesDeploy {
+		if t.Type != "statichost" {
+			continue
+		}
+		if t.Site != "" {
+			sites = append(sites, t.Site)
+		}
+		if t.HasRCSite() {
+			sites = append(sites, t.RCSite)
+		}
+	}
+
+	if len(sites) == 0 {
+		findings = append(findings, finding{levelOK, "No statichost targets configured"})
+		return findings
+	}
+
+	for _, site := range sites {
+		url := "https://" + site + ".statichost.page/"
+		resp, err := statichostHTTPClient.Head(url)
+		if err != nil {
+			findings = append(findings, finding{levelWarn, fmt.Sprintf("%s unreachable: %v", site, err)})
+			continue
+		}
+		resp.Body.Close()
+		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			findings = append(findings, finding{levelOK, fmt.Sprintf("%s reachable (%d)", site, resp.StatusCode)})
+		} else {
+			findings = append(findings, finding{levelWarn, fmt.Sprintf("%s returned HTTP %d", site, resp.StatusCode)})
+		}
+	}
+
+	return findings
+}
+
 func printDeploy(dir string) {
 	cfg, err := config.Load(dir)
 	if err != nil || len(cfg.PagesDeploy) == 0 {
@@ -617,11 +680,15 @@ func printDeploy(dir string) {
 
 	fmt.Println("\nDeploy targets:")
 	for _, t := range cfg.PagesDeploy {
+		dirLabel := ""
+		if t.Dir != "" {
+			dirLabel = fmt.Sprintf(", dir: %s", t.Dir)
+		}
 		switch t.Type {
 		case "statichost":
-			fmt.Printf("  %-16s site: %s (statichost.eu)\n", t.Type, t.Site)
+			fmt.Printf("  %-16s site: %s (statichost.eu%s)\n", t.Type, t.Site, dirLabel)
 		case "github":
-			fmt.Printf("  %-16s GitHub Pages (gh-pages branch)\n", t.Type)
+			fmt.Printf("  %-16s GitHub Pages (gh-pages branch%s)\n", t.Type, dirLabel)
 		default:
 			fmt.Printf("  %-16s %s\n", t.Type, t.Site)
 		}

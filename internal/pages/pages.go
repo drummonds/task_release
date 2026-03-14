@@ -12,9 +12,9 @@ import (
 
 const maxPort = 8090
 
-// Serve runs optional build commands, then starts an HTTP file server for docs/.
-// It tries ports from the given port up to maxPort.
-func Serve(dir string, port int, buildCmds []string) error {
+// Serve runs optional build commands, then starts an HTTP file server for the
+// specified subdirectory. It tries ports from the given port up to maxPort.
+func Serve(dir string, port int, buildCmds []string, subDir string) error {
 	// Run build commands first
 	for _, cmd := range buildCmds {
 		fmt.Printf("$ %s\n", cmd)
@@ -28,9 +28,9 @@ func Serve(dir string, port int, buildCmds []string) error {
 		}
 	}
 
-	docsDir := filepath.Join(dir, "docs")
+	docsDir := filepath.Join(dir, subDir)
 	if _, err := os.Stat(docsDir); os.IsNotExist(err) {
-		return fmt.Errorf("docs/ directory not found in %s", dir)
+		return fmt.Errorf("%s/ directory not found in %s", subDir, dir)
 	}
 
 	if _, err := os.Stat(filepath.Join(docsDir, "index.html")); os.IsNotExist(err) {

@@ -7,6 +7,15 @@ type Target struct {
 	Type   string `yaml:"type"`
 	Site   string `yaml:"site"`    // statichost site name
 	RCSite string `yaml:"rc_site"` // optional RC site for pre-release verification
+	Dir    string `yaml:"dir"`     // output directory to deploy (default "docs")
+}
+
+// DocsDir returns the configured output directory, defaulting to "docs".
+func (t Target) DocsDir() string {
+	if t.Dir != "" {
+		return t.Dir
+	}
+	return "docs"
 }
 
 // HasRCSite returns true if this target has an RC site configured.

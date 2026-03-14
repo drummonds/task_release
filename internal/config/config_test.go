@@ -469,6 +469,53 @@ func TestPagesDeployRCSite(t *testing.T) {
 	}
 }
 
+func TestPagesDeployDir(t *testing.T) {
+	dir := t.TempDir()
+	yaml := `pages_deploy:
+  - type: statichost
+    site: h3-docs
+    dir: docs
+  - type: statichost
+    site: h3-blog
+    dir: public
+`
+	_ = os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte(yaml), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.PagesDeploy) != 2 {
+		t.Fatalf("PagesDeploy = %v, want 2 targets", cfg.PagesDeploy)
+	}
+	if cfg.PagesDeploy[0].DocsDir() != "docs" {
+		t.Errorf("PagesDeploy[0].DocsDir() = %q, want docs", cfg.PagesDeploy[0].DocsDir())
+	}
+	if cfg.PagesDeploy[1].DocsDir() != "public" {
+		t.Errorf("PagesDeploy[1].DocsDir() = %q, want public", cfg.PagesDeploy[1].DocsDir())
+	}
+}
+
+func TestPagesDeployDirDefault(t *testing.T) {
+	dir := t.TempDir()
+	yaml := `pages_deploy:
+  - type: statichost
+    site: h3-myproject
+`
+	_ = os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte(yaml), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.PagesDeploy[0].DocsDir() != "docs" {
+		t.Errorf("DocsDir() = %q, want docs (default)", cfg.PagesDeploy[0].DocsDir())
+	}
+	if cfg.PagesDeploy[0].Dir != "" {
+		t.Errorf("Dir = %q, want empty (not set)", cfg.PagesDeploy[0].Dir)
+	}
+}
+
 func TestPagesDeployNoRCSite(t *testing.T) {
 	dir := t.TempDir()
 	yaml := `pages_deploy:

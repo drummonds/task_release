@@ -661,7 +661,7 @@ func checkStatichost(dir string) []finding {
 			findings = append(findings, finding{levelWarn, fmt.Sprintf("%s unreachable: %v", site, err)})
 			continue
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 			findings = append(findings, finding{levelOK, fmt.Sprintf("%s reachable (%d)", site, resp.StatusCode)})
 		} else {

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/drummonds/task-plus/internal/config"
+	"github.com/drummonds/task-plus/internal/deploy"
 	"github.com/drummonds/task-plus/internal/git"
 )
 
@@ -90,12 +91,9 @@ func GenerateLinksTable(dir string) string {
 		cfg = &config.Config{Dir: dir}
 	}
 
-	// Documentation URL from statichost config (local or -docs sibling)
-	if docURL := docsURL(cfg); docURL != "" {
-		rows = append(rows, struct{ label, url string }{"Documentation", docURL})
-	}
-	if rcURL := rcDocsURL(cfg); rcURL != "" {
-		rows = append(rows, struct{ label, url string }{"RC Documentation", rcURL})
+	// Documentation URLs from statichost config (local or -docs sibling)
+	for _, dl := range docsLinks(cfg) {
+		rows = append(rows, struct{ label, url string }{dl.label, dl.url})
 	}
 
 	// PyPI link for Python projects
@@ -164,51 +162,66 @@ func GenerateLinksTable(dir string) string {
 	return sb.String()
 }
 
-// rcDocsURL returns the RC documentation URL from statichost config, if configured.
-func rcDocsURL(cfg *config.Config) string {
-	for _, target := range cfg.PagesDeploy {
-		if target.Type == "statichost" && target.HasRCSite() {
-			return "https://" + target.RCSite + ".statichost.page/"
+type docLink struct{ label, url string }
+
+// docsLinks returns documentation URLs for all statichost deploy targets.
+// The first target is labelled "Documentation"; subsequent targets derive
+// their label from the site name. RC sites get "RC Documentation" / "RC <label>".
+// Checks local config first, falls back to -docs sibling.
+func docsLinks(cfg *config.Config) []docLink {
+	targets := statichostTargets(cfg)
+	if len(targets) == 0 {
+		// Fall back to -docs sibling
+		docsDir := cfg.ResolveDocsRepo()
+		if docsDir == "" {
+			return nil
+		}
+		docsCfg, err := config.Load(docsDir)
+		if err != nil {
+			return nil
+		}
+		targets = statichostTargets(docsCfg)
+	}
+	if len(targets) == 0 {
+		return nil
+	}
+
+	var links []docLink
+	for i, t := range targets {
+		label := "Documentation"
+		if i > 0 {
+			label = siteLabel(t.Site)
+		}
+		links = append(links, docLink{label, "https://" + t.Site + ".statichost.page/"})
+		if t.HasRCSite() {
+			rcLabel := "RC " + label
+			links = append(links, docLink{rcLabel, "https://" + t.RCSite + ".statichost.page/"})
 		}
 	}
-	docsDir := cfg.ResolveDocsRepo()
-	if docsDir == "" {
-		return ""
-	}
-	docsCfg, err := config.Load(docsDir)
-	if err != nil {
-		return ""
-	}
-	for _, target := range docsCfg.PagesDeploy {
-		if target.Type == "statichost" && target.HasRCSite() {
-			return "https://" + target.RCSite + ".statichost.page/"
-		}
-	}
-	return ""
+	return links
 }
 
-// docsURL returns the documentation URL from statichost config.
-// Checks local config first (combined docs), then -docs sibling.
-func docsURL(cfg *config.Config) string {
-	// Check local config first
-	for _, target := range cfg.PagesDeploy {
-		if target.Type == "statichost" && target.Site != "" {
-			return "https://" + target.Site + ".statichost.page/"
+// statichostTargets returns all statichost deploy targets with a site configured.
+func statichostTargets(cfg *config.Config) []deploy.Target {
+	var out []deploy.Target
+	for _, t := range cfg.PagesDeploy {
+		if t.Type == "statichost" && t.Site != "" {
+			out = append(out, t)
 		}
 	}
-	// Fall back to -docs sibling
-	docsDir := cfg.ResolveDocsRepo()
-	if docsDir == "" {
-		return ""
-	}
-	docsCfg, err := config.Load(docsDir)
-	if err != nil {
-		return ""
-	}
-	for _, target := range docsCfg.PagesDeploy {
-		if target.Type == "statichost" && target.Site != "" {
-			return "https://" + target.Site + ".statichost.page/"
+	return out
+}
+
+// siteLabel derives a human-readable label from a statichost site name.
+// e.g. "blog-bytestone" → "Blog Bytestone", "h3-docs" → "Docs".
+func siteLabel(site string) string {
+	// Strip common h3- prefix
+	s := strings.TrimPrefix(site, "h3-")
+	parts := strings.Split(s, "-")
+	for i, p := range parts {
+		if len(p) > 0 {
+			parts[i] = strings.ToUpper(p[:1]) + p[1:]
 		}
 	}
-	return ""
+	return strings.Join(parts, " ")
 }

@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+ - `tp readme` now lists all statichost deploy targets in Links, not just the first
+
 ## [0.1.62] - 2026-03-15
 
  - getting linter to pass

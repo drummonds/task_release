@@ -15,6 +15,10 @@ type Statichost struct {
 
 func (s *Statichost) Name() string { return fmt.Sprintf("statichost.eu (%s)", s.Site) }
 
+func (s *Statichost) Validate() error {
+	return s.checkSiteExists()
+}
+
 func (s *Statichost) Deploy(projectDir, docsDir string, dryRun bool) error {
 	if _, err := os.Stat(docsDir); os.IsNotExist(err) {
 		return fmt.Errorf("docs directory not found: %s", docsDir)

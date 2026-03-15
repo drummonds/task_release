@@ -14,6 +14,7 @@ import (
 	"github.com/drummonds/task-plus/internal/combine"
 	"github.com/drummonds/task-plus/internal/config"
 	"github.com/drummonds/task-plus/internal/deploy"
+	"github.com/drummonds/task-plus/internal/favicon"
 	"github.com/drummonds/task-plus/internal/forge"
 	"github.com/drummonds/task-plus/internal/git"
 	"github.com/drummonds/task-plus/internal/md2html"
@@ -52,6 +53,7 @@ var commands = []struct {
 	{"md2html", "Convert markdown files to Bulma-styled HTML"},
 	{"md_update", "Update auto-marker sections in a markdown file (toc, pages, links)"},
 	{"readme", "Update auto-marker sections in README.md (links, version)"},
+	{"favicon", "Generate an SVG favicon for static sites"},
 	{"wt", "Manage git worktrees (start, agent, review, merge, clean, list, dashboard)"},
 	{"claude", "Run claude --dangerously-skip-permissions (requires worktree + sandbox)"},
 	{"self", "Manage task-plus itself (update, etc.)"},
@@ -83,6 +85,8 @@ func Main() {
 		runReleaseVersionUpdate(os.Args[2:])
 	case "repos":
 		runRepos(os.Args[2:])
+	case "favicon":
+		runFavicon(os.Args[2:])
 	case "md2html":
 		runMd2html(os.Args[2:])
 	case "md_update":
@@ -158,6 +162,7 @@ func runInit() {
 func runCheck(args []string) {
 	fs := flag.NewFlagSet("check", flag.ExitOnError)
 	dir := fs.String("dir", ".", "project directory")
+	verbose := fs.Bool("verbose", false, "show all findings including passes")
 	_ = fs.Parse(args)
 
 	absDir, err := filepath.Abs(*dir)
@@ -167,9 +172,63 @@ func runCheck(args []string) {
 	}
 
 	fmt.Printf("task-plus check %s\n\n", appVersion)
-	if err := check.Run(absDir); err != nil {
+	if err := check.Run(absDir, *verbose); err != nil {
 		os.Exit(1)
 	}
+}
+
+func runFavicon(args []string) {
+	fs := flag.NewFlagSet("favicon", flag.ExitOnError)
+	text := fs.String("text", "", "text to display (default: project initials)")
+	color := fs.String("color", "#3273dc", "background color (CSS color)")
+	dir := fs.String("dir", ".", "project directory")
+	output := fs.String("output", "", "output directory (default: first deploy target's docs dir, or 'docs')")
+	_ = fs.Parse(args)
+
+	absDir, err := filepath.Abs(*dir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Determine output directory
+	outDir := *output
+	if outDir == "" {
+		outDir = "docs"
+		if cfg, err := config.Load(absDir); err == nil && len(cfg.PagesDeploy) > 0 {
+			outDir = cfg.PagesDeploy[0].DocsDir()
+		}
+	}
+	if !filepath.IsAbs(outDir) {
+		outDir = filepath.Join(absDir, outDir)
+	}
+
+	// Determine text
+	t := *text
+	if t == "" {
+		project := detectProjectName(absDir)
+		t = favicon.Initials(project)
+	}
+
+	if err := favicon.Generate(outDir, t, *color); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+// detectProjectName returns the project name from go.mod or directory name.
+func detectProjectName(dir string) string {
+	data, err := os.ReadFile(filepath.Join(dir, "go.mod"))
+	if err == nil {
+		for _, line := range strings.Split(string(data), "\n") {
+			if strings.HasPrefix(line, "module ") {
+				mod := strings.TrimSpace(strings.TrimPrefix(line, "module "))
+				parts := strings.Split(mod, "/")
+				return parts[len(parts)-1]
+			}
+		}
+	}
+	return filepath.Base(dir)
 }
 
 func runRelease(args []string) {

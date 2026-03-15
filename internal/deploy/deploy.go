@@ -26,6 +26,9 @@ func (t Target) HasRCSite() bool {
 // Deployer deploys documentation to a hosting provider.
 type Deployer interface {
 	Name() string
+	// Validate checks that the deploy target is reachable and ready.
+	// Call this before irreversible release steps to catch problems early.
+	Validate() error
 	Deploy(projectDir, docsDir string, dryRun bool) error
 }
 

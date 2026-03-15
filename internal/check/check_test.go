@@ -148,8 +148,28 @@ func TestCheckTaskfile_Missing(t *testing.T) {
 
 func TestCheckTaskfile_StandardTasks(t *testing.T) {
 	dir := t.TempDir()
+	// Non-Go project: only test + check are standard
+	content := "version: '3'\ntasks:\n  test:\n    cmds: [echo]\n  check:\n    cmds: [echo]\n"
+	_ = os.WriteFile(filepath.Join(dir, "Taskfile.yml"), []byte(content), 0644)
+	findings := checkTaskfile(dir)
+	hasOK := false
+	for _, f := range findings {
+		if f.level == levelOK && f.message == "Standard tasks: test, check" {
+			hasOK = true
+		}
+	}
+	if !hasOK {
+		t.Errorf("expected standard tasks OK, got %v", findings)
+	}
+}
+
+func TestCheckTaskfile_StandardTasksGo(t *testing.T) {
+	dir := t.TempDir()
+	// Go project: fmt, vet, test, check are all standard
 	content := "version: '3'\ntasks:\n  fmt:\n    cmds: [echo]\n  vet:\n    cmds: [echo]\n  test:\n    cmds: [echo]\n  check:\n    cmds: [echo]\n"
 	_ = os.WriteFile(filepath.Join(dir, "Taskfile.yml"), []byte(content), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "task-plus.yml"), []byte("languages: [go]\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example.com/test\n"), 0644)
 	findings := checkTaskfile(dir)
 	hasOK := false
 	for _, f := range findings {
@@ -164,12 +184,13 @@ func TestCheckTaskfile_StandardTasks(t *testing.T) {
 
 func TestCheckTaskfile_MissingStandardTasks(t *testing.T) {
 	dir := t.TempDir()
+	// Non-Go project: only test + check are standard; neither present
 	content := "version: '3'\ntasks:\n  fmt:\n    cmds: [echo]\n"
 	_ = os.WriteFile(filepath.Join(dir, "Taskfile.yml"), []byte(content), 0644)
 	findings := checkTaskfile(dir)
 	hasWarn := false
 	for _, f := range findings {
-		if f.level == levelWarn && f.message == "Missing standard tasks: vet, test, check" {
+		if f.level == levelWarn && f.message == "Missing standard tasks: test, check" {
 			hasWarn = true
 		}
 	}

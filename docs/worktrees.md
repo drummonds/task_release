@@ -67,7 +67,7 @@ flowchart TD
 | `wt agent --task=NAME [--spec="PROMPT"]` | Run Claude agent in worktree (registers with dashboard) |
 | `wt review --task=NAME` | Show diff between main and the task branch |
 | `wt merge --task=NAME` | Merge task branch into current branch, remove worktree |
-| `wt clean --task=NAME` | Force-remove worktree and delete branch |
+| `wt clean --task=NAME` | Merge branch, close VS Code folder, remove from recent list, remove worktree, delete branch |
 | `wt list` | List all git worktrees |
 | `wt dashboard [--term]` | Live dashboard of running agents |
 | `wt --init` | Print Taskfile.yml snippets for all wt commands |

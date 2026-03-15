@@ -92,6 +92,14 @@ func Run(cfg *config.Config, dryRun bool, comment ...string) error {
 		return fmt.Errorf("Run checks: %w", err)
 	}
 
+	// 4b. Validate deploy targets before any irreversible steps
+	if ctx.Plan.DoDeploy {
+		fmt.Println("\n=== Validate deploy targets ===")
+		if err := validateDeploy(ctx); err != nil {
+			return fmt.Errorf("deploy validation: %w", err)
+		}
+	}
+
 	// 5. Execute — all mutations
 	fmt.Println("\n=== Execute ===")
 	if err := Execute(ctx); err != nil {

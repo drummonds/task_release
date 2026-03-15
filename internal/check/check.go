@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/drummonds/task-plus/internal/config"
+	"github.com/drummonds/task-plus/internal/favicon"
 	"github.com/drummonds/task-plus/internal/forge"
 	"github.com/drummonds/task-plus/internal/git"
 	"gopkg.in/yaml.v3"
@@ -39,6 +40,12 @@ func (f finding) String() string {
 	}
 	return "  " + f.message
 }
+
+// ANSI escape for green tick and reset.
+const (
+	greenTick = "\033[32m\u2714\033[0m"
+	redCross  = "\033[31m\u2718\033[0m"
+)
 
 // Known yaml tags in Config struct.
 var knownConfigKeys = map[string]bool{
@@ -77,106 +84,91 @@ var taskInversions = []struct {
 // Task names that conflict with tp commands.
 var taskConflicts = []string{"release", "pages"}
 
-// Standard expected task names.
-var standardTasks = []string{"fmt", "vet", "test", "check"}
+// Standard expected task names (language-agnostic).
+var standardTasks = []string{"test", "check"}
+
+// Go-specific standard tasks.
+var goTasks = []string{"fmt", "vet"}
+
+// section groups a named set of findings for display.
+type section struct {
+	name     string
+	findings []finding
+}
+
+// printSection outputs a section in verbose or compact mode.
+// Returns the number of errors and warnings in the section.
+func printSection(s section, verbose bool) (errors, warnings int) {
+	for _, f := range s.findings {
+		switch f.level {
+		case levelError:
+			errors++
+		case levelWarn:
+			warnings++
+		}
+	}
+
+	if verbose {
+		fmt.Println(s.name)
+		for _, f := range s.findings {
+			fmt.Println(f)
+		}
+		return
+	}
+
+	// Compact mode: green tick if all OK, otherwise show heading + warnings/errors only.
+	if errors == 0 && warnings == 0 {
+		fmt.Printf("%s %s\n", greenTick, s.name)
+		return
+	}
+
+	icon := redCross
+	if errors == 0 {
+		icon = "!"
+	}
+	fmt.Printf("%s %s\n", icon, s.name)
+	for _, f := range s.findings {
+		if f.level != levelOK {
+			fmt.Println(f)
+		}
+	}
+	return
+}
 
 // Run validates the project configuration in dir and prints a report.
 // Returns an error if any ERROR-level findings exist.
-func Run(dir string) error {
-	var errors, warnings int
-
-	// --- task-plus.yml ---
-	fmt.Println("task-plus.yml")
-	for _, f := range checkConfig(dir) {
-		fmt.Println(f)
-		switch f.level {
-		case levelError:
-			errors++
-		case levelWarn:
-			warnings++
-		}
+func Run(dir string, verbose bool) error {
+	sections := []section{
+		{"task-plus.yml", checkConfig(dir)},
+		{"Taskfile.yml", checkTaskfile(dir)},
+		{"Remotes", checkRemotes(dir)},
+		{"Cross-repo", checkCrossRepo(dir)},
+		{"Worktrees", checkWorktrees(dir)},
+		{"GitHub Pages", checkGitHubPages(dir)},
+		{"Statichost", checkStatichost(dir)},
+		{"Favicon", checkFavicon(dir)},
 	}
 
-	// --- Taskfile.yml ---
-	fmt.Println("\nTaskfile.yml")
-	for _, f := range checkTaskfile(dir) {
-		fmt.Println(f)
-		switch f.level {
-		case levelError:
-			errors++
-		case levelWarn:
-			warnings++
+	var totalErrors, totalWarnings int
+	for i, s := range sections {
+		if verbose && i > 0 {
+			fmt.Println()
 		}
+		e, w := printSection(s, verbose)
+		totalErrors += e
+		totalWarnings += w
 	}
 
-	// --- Remotes ---
-	fmt.Println("\nRemotes")
-	for _, f := range checkRemotes(dir) {
-		fmt.Println(f)
-		switch f.level {
-		case levelError:
-			errors++
-		case levelWarn:
-			warnings++
-		}
+	// Deploy summary (verbose only)
+	if verbose {
+		printDeploy(dir)
 	}
 
-	// --- Cross-repo checks ---
-	fmt.Println("\nCross-repo")
-	for _, f := range checkCrossRepo(dir) {
-		fmt.Println(f)
-		switch f.level {
-		case levelError:
-			errors++
-		case levelWarn:
-			warnings++
-		}
-	}
+	// Summary line
+	fmt.Printf("\n%d errors, %d warnings\n", totalErrors, totalWarnings)
 
-	// --- Worktrees ---
-	fmt.Println("\nWorktrees")
-	for _, f := range checkWorktrees(dir) {
-		fmt.Println(f)
-		switch f.level {
-		case levelError:
-			errors++
-		case levelWarn:
-			warnings++
-		}
-	}
-
-	// --- GitHub Pages ---
-	fmt.Println("\nGitHub Pages")
-	for _, f := range checkGitHubPages(dir) {
-		fmt.Println(f)
-		switch f.level {
-		case levelError:
-			errors++
-		case levelWarn:
-			warnings++
-		}
-	}
-
-	// --- Statichost ---
-	fmt.Println("\nStatichost")
-	for _, f := range checkStatichost(dir) {
-		fmt.Println(f)
-		switch f.level {
-		case levelError:
-			errors++
-		case levelWarn:
-			warnings++
-		}
-	}
-
-	// --- Deploy summary ---
-	printDeploy(dir)
-
-	// --- Summary line ---
-	fmt.Printf("\n%d errors, %d warnings\n", errors, warnings)
-
-	if errors > 0 {
-		return fmt.Errorf("%d errors found", errors)
+	if totalErrors > 0 {
+		return fmt.Errorf("%d errors found", totalErrors)
 	}
 	return nil
 }
@@ -303,9 +295,16 @@ func checkTaskfile(dir string) []finding {
 	}
 	findings = append(findings, finding{levelOK, "File found"})
 
+	// Build the task checklist: language-agnostic + language-specific
+	cfg, _ := config.Load(dir)
+	tasks := standardTasks
+	if cfg != nil && cfg.HasGo() {
+		tasks = append(goTasks, tasks...)
+	}
+
 	// Check standard tasks
 	var present, missing []string
-	for _, name := range standardTasks {
+	for _, name := range tasks {
 		if config.HasTaskfileTask(dir, name) {
 			present = append(present, name)
 		} else {
@@ -335,7 +334,6 @@ func checkTaskfile(dir string) []finding {
 	}
 
 	// Check Go projects have a lint task using golangci-lint
-	cfg, _ := config.Load(dir)
 	if cfg != nil && cfg.HasGo() {
 		if config.HasTaskfileTask(dir, "lint") {
 			findings = append(findings, finding{levelOK, "lint task found (golangci-lint)"})
@@ -666,6 +664,38 @@ func checkStatichost(dir string) []finding {
 			findings = append(findings, finding{levelOK, fmt.Sprintf("%s reachable (%d)", site, resp.StatusCode)})
 		} else {
 			findings = append(findings, finding{levelWarn, fmt.Sprintf("%s returned HTTP %d", site, resp.StatusCode)})
+		}
+	}
+
+	return findings
+}
+
+func checkFavicon(dir string) []finding {
+	var findings []finding
+
+	cfg, err := config.Load(dir)
+	if err != nil {
+		return findings
+	}
+
+	if !cfg.HasPagesDeploy() {
+		findings = append(findings, finding{levelOK, "No deploy targets (favicon not needed)"})
+		return findings
+	}
+
+	// Check each deploy target's docs directory for a favicon
+	seen := make(map[string]bool)
+	for _, t := range cfg.PagesDeploy {
+		docsDir := filepath.Join(dir, t.DocsDir())
+		if seen[docsDir] {
+			continue
+		}
+		seen[docsDir] = true
+
+		if favicon.Exists(docsDir) {
+			findings = append(findings, finding{levelOK, fmt.Sprintf("Found in %s/", t.DocsDir())})
+		} else {
+			findings = append(findings, finding{levelWarn, fmt.Sprintf("No favicon in %s/ — run 'tp favicon' to generate one", t.DocsDir())})
 		}
 	}
 

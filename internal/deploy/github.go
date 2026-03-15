@@ -12,6 +12,8 @@ type GitHub struct{}
 
 func (g *GitHub) Name() string { return "GitHub Pages" }
 
+func (g *GitHub) Validate() error { return nil }
+
 func (g *GitHub) Deploy(projectDir, docsDir string, dryRun bool) error {
 	if _, err := os.Stat(docsDir); os.IsNotExist(err) {
 		return fmt.Errorf("docs directory not found: %s", docsDir)

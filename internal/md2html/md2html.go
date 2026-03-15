@@ -40,6 +40,7 @@ type pageData struct {
 	Title       string
 	Project     string
 	RootURL     string
+	FaviconURL  string
 	Content     template.HTML
 	Breadcrumbs []breadcrumb
 	HasMermaid  bool
@@ -124,6 +125,7 @@ func convertFile(md goldmark.Markdown, tmpl *template.Template, cfg Config, name
 	outName := strings.TrimSuffix(name, ".md") + ".html"
 
 	rootURL := docsRootURL(cfg.Dst)
+	faviconURL := strings.TrimSuffix(rootURL, "index.html") + "favicon.svg"
 
 	// Breadcrumbs: category + page title only (project name is in the navbar)
 	var crumbs []breadcrumb
@@ -136,6 +138,7 @@ func convertFile(md goldmark.Markdown, tmpl *template.Template, cfg Config, name
 		Title:       title,
 		Project:     cfg.Project,
 		RootURL:     rootURL,
+		FaviconURL:  faviconURL,
 		Content:     template.HTML(rendered),
 		Breadcrumbs: crumbs,
 		HasMermaid:  hasMermaid,

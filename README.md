@@ -167,7 +167,7 @@ tp wt start --task=my-feature      # create worktree, open as VS Code workspace 
 tp wt agent --task=my-feature --spec="implement login"  # register agent + run claude
 tp wt review --task=my-feature     # diff task branch against main
 tp wt merge --task=my-feature      # merge branch and remove worktree
-tp wt clean --task=my-feature      # merge, remove worktree, delete branch, close VS Code folder
+tp wt clean --task=my-feature      # merge, close VS Code, remove from recent list, clean up
 tp wt list                         # list active worktrees
 tp wt dashboard                    # agent dashboard (web UI; --term for terminal)
 tp wt --init                       # print Taskfile snippets for wt: tasks

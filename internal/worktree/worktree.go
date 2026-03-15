@@ -17,6 +17,7 @@ import (
 	"github.com/drummonds/task-plus/internal/dashboard"
 	"github.com/drummonds/task-plus/internal/prompt"
 	"github.com/drummonds/task-plus/internal/releasecomment"
+	"github.com/drummonds/task-plus/internal/vscode"
 )
 
 const settingsJSON = `{
@@ -313,8 +314,9 @@ func runClean(args []string) error {
 	fmt.Println("This will:")
 	fmt.Printf("  1. Merge %s into current branch\n", branch)
 	fmt.Printf("  2. Close VS Code workspace folder\n")
-	fmt.Printf("  3. Remove worktree at %s\n", wtPath)
-	fmt.Printf("  4. Delete branch %s\n", branch)
+	fmt.Printf("  3. Remove from VS Code recently opened list\n")
+	fmt.Printf("  4. Remove worktree at %s\n", wtPath)
+	fmt.Printf("  5. Delete branch %s\n", branch)
 	fmt.Println()
 
 	if !prompt.Confirm("Proceed?") {
@@ -341,13 +343,20 @@ func runClean(args []string) error {
 	// 2. Close VS Code workspace folder (before removing worktree directory)
 	closeVSCodeFolder(wtPath)
 
-	// 3. Remove worktree
+	// 3. Remove from VS Code recently opened list
+	if err := vscode.RemoveFromRecent(wtPath); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: VS Code recent list: %v\n", err)
+	} else {
+		fmt.Printf("Removed from VS Code recently opened list\n")
+	}
+
+	// 4. Remove worktree
 	fmt.Printf("Removing worktree at %s\n", wtPath)
 	if err := git(dir, "worktree", "remove", wtPath, "--force"); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: worktree remove: %v\n", err)
 	}
 
-	// 4. Delete branch
+	// 5. Delete branch
 	if err := git(dir, "branch", "-d", branch); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: branch delete: %v\n", err)
 	}
@@ -636,7 +645,7 @@ func printInit() {
       - task-plus wt merge {{.TASK}}
 
   wt:clean:
-    desc: Merge branch, remove worktree, close VS Code folder
+    desc: Merge branch, close VS Code, remove from recent list, remove worktree, delete branch
     requires:
       vars: [TASK]
     cmds:

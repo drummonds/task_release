@@ -9,13 +9,13 @@ Try https://h3-task-plus.statichost.page/ for documentation.
 ## Install
 
 ```bash
-go install github.com/drummonds/task-plus/cmd/task-plus@latest
+go install codeberg.org/hum3/task-plus/cmd/task-plus@latest
 ```
 
 A shorter alias `tp` is also available:
 
 ```bash
-go install github.com/drummonds/task-plus/cmd/tp@latest
+go install codeberg.org/hum3/task-plus/cmd/tp@latest
 ```
 
 Both binaries are identical — `tp` is just shorter to type.

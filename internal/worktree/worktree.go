@@ -13,11 +13,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/drummonds/task-plus/internal/agent"
-	"github.com/drummonds/task-plus/internal/dashboard"
-	"github.com/drummonds/task-plus/internal/prompt"
-	"github.com/drummonds/task-plus/internal/releasecomment"
-	"github.com/drummonds/task-plus/internal/vscode"
+	"codeberg.org/hum3/task-plus/internal/agent"
+	"codeberg.org/hum3/task-plus/internal/dashboard"
+	"codeberg.org/hum3/task-plus/internal/prompt"
+	"codeberg.org/hum3/task-plus/internal/releasecomment"
+	"codeberg.org/hum3/task-plus/internal/vscode"
 )
 
 const settingsJSON = `{

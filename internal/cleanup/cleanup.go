@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/drummonds/task-plus/internal/version"
+	"codeberg.org/hum3/task-plus/internal/version"
 )
 
 // Deletion describes a release to delete and the reason why.

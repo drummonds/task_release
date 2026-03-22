@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/drummonds/task-plus/internal/config"
-	"github.com/drummonds/task-plus/internal/deploy"
+	"codeberg.org/hum3/task-plus/internal/config"
+	"codeberg.org/hum3/task-plus/internal/deploy"
 	"gopkg.in/yaml.v3"
 )
 

@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	modulePath = "github.com/drummonds/task-plus/cmd/task-plus"
-	moduleName = "github.com/drummonds/task-plus"
+	modulePath = "codeberg.org/hum3/task-plus/cmd/task-plus"
+	moduleName = "codeberg.org/hum3/task-plus"
 )
 
 // Run dispatches self sub-subcommands.

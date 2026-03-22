@@ -3,8 +3,8 @@ package readme
 import (
 	"testing"
 
-	"github.com/drummonds/task-plus/internal/config"
-	"github.com/drummonds/task-plus/internal/deploy"
+	"codeberg.org/hum3/task-plus/internal/config"
+	"codeberg.org/hum3/task-plus/internal/deploy"
 )
 
 func TestReplaceSection(t *testing.T) {

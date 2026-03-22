@@ -12,7 +12,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/drummonds/task-plus/internal/mdupdate"
+	"codeberg.org/hum3/task-plus/internal/mdupdate"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"

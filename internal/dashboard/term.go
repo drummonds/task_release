@@ -7,7 +7,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/drummonds/task-plus/internal/agent"
+	"codeberg.org/hum3/task-plus/internal/agent"
 )
 
 func runTerm() error {

@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/drummonds/task-plus/internal/cleanup"
-	"github.com/drummonds/task-plus/internal/config"
-	"github.com/drummonds/task-plus/internal/forge"
-	"github.com/drummonds/task-plus/internal/version"
+	"codeberg.org/hum3/task-plus/internal/cleanup"
+	"codeberg.org/hum3/task-plus/internal/config"
+	"codeberg.org/hum3/task-plus/internal/forge"
+	"codeberg.org/hum3/task-plus/internal/version"
 )
 
 // Plan holds all gathered state and user decisions for a release.

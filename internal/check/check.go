@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/drummonds/task-plus/internal/config"
-	"github.com/drummonds/task-plus/internal/favicon"
-	"github.com/drummonds/task-plus/internal/forge"
-	"github.com/drummonds/task-plus/internal/git"
+	"codeberg.org/hum3/task-plus/internal/config"
+	"codeberg.org/hum3/task-plus/internal/favicon"
+	"codeberg.org/hum3/task-plus/internal/forge"
+	"codeberg.org/hum3/task-plus/internal/git"
 	"gopkg.in/yaml.v3"
 )
 
@@ -141,6 +141,7 @@ func Run(dir string, verbose bool) error {
 	sections := []section{
 		{"task-plus.yml", checkConfig(dir)},
 		{"Taskfile.yml", checkTaskfile(dir)},
+		{"Go module", checkGoModule(dir)},
 		{"Remotes", checkRemotes(dir)},
 		{"Cross-repo", checkCrossRepo(dir)},
 		{"Worktrees", checkWorktrees(dir)},
@@ -353,6 +354,105 @@ func checkTaskfile(dir string) []finding {
 	}
 
 	return findings
+}
+
+func checkGoModule(dir string) []finding {
+	var findings []finding
+
+	cfg, err := config.Load(dir)
+	if err != nil {
+		findings = append(findings, finding{levelWarn, fmt.Sprintf("Cannot load config: %v", err)})
+		return findings
+	}
+
+	if !cfg.HasGoMod() {
+		findings = append(findings, finding{levelOK, "Not a Go project"})
+		return findings
+	}
+
+	// Read module path from go.mod
+	modPath, err := readGoModulePath(filepath.Join(dir, "go.mod"))
+	if err != nil {
+		findings = append(findings, finding{levelError, fmt.Sprintf("Cannot read go.mod: %v", err)})
+		return findings
+	}
+
+	// Get primary remote URL
+	remoteName := cfg.PrimaryRemote()
+	remoteURL, err := git.RemoteURL(dir, remoteName)
+	if err != nil {
+		findings = append(findings, finding{levelWarn, fmt.Sprintf("Cannot get URL for remote %q: %v", remoteName, err)})
+		return findings
+	}
+
+	// Normalise remote URL to module path form
+	expected := remoteURLToModulePath(remoteURL)
+	if expected == "" {
+		findings = append(findings, finding{levelWarn, fmt.Sprintf("Cannot parse remote URL %q", remoteURL)})
+		return findings
+	}
+
+	if modPath == expected {
+		findings = append(findings, finding{levelOK, fmt.Sprintf("module %s matches remote %q", modPath, remoteName)})
+	} else {
+		findings = append(findings, finding{levelError, fmt.Sprintf("module %q does not match remote %q (%s)", modPath, remoteName, expected)})
+	}
+
+	return findings
+}
+
+// readGoModulePath extracts the module path from a go.mod file.
+func readGoModulePath(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "module ") {
+			return strings.TrimSpace(line[len("module "):]), nil
+		}
+	}
+	return "", fmt.Errorf("no module directive found")
+}
+
+// remoteURLToModulePath normalises a git remote URL to a Go module path.
+// Examples:
+//
+//	ssh://git@codeberg.org/hum3/task-plus.git → codeberg.org/hum3/task-plus
+//	git@github.com:drummonds/task-plus.git    → github.com/drummonds/task-plus
+//	https://github.com/drummonds/task-plus    → github.com/drummonds/task-plus
+func remoteURLToModulePath(url string) string {
+	s := url
+
+	// Strip scheme
+	for _, prefix := range []string{"ssh://", "https://", "http://"} {
+		if strings.HasPrefix(s, prefix) {
+			s = s[len(prefix):]
+			break
+		}
+	}
+
+	// Strip user@ prefix
+	if at := strings.Index(s, "@"); at >= 0 {
+		s = s[at+1:]
+	}
+
+	// Convert SCP-style colon to slash (git@github.com:org/repo)
+	if colon := strings.Index(s, ":"); colon >= 0 {
+		// Only convert if there's no slash before the colon (not a port)
+		if !strings.Contains(s[:colon], "/") {
+			s = s[:colon] + "/" + s[colon+1:]
+		}
+	}
+
+	// Strip .git suffix
+	s = strings.TrimSuffix(s, ".git")
+
+	// Strip trailing slash
+	s = strings.TrimRight(s, "/")
+
+	return s
 }
 
 func checkRemotes(dir string) []finding {

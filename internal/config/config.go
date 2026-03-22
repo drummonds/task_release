@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/drummonds/task-plus/internal/deploy"
+	"codeberg.org/hum3/task-plus/internal/deploy"
 	"gopkg.in/yaml.v3"
 )
 
@@ -55,7 +55,7 @@ func Init(dir string) error {
 		return fmt.Errorf("%s already exists", configFile)
 	}
 
-	content := `# task-plus configuration — see https://github.com/drummonds/task-plus
+	content := `# task-plus configuration — see https://codeberg.org/hum3/task-plus
 # type: library           # or "binary" (auto-detected from .goreleaser.yaml)
 # check: [task check]     # commands to run during release checks
 # changelog_format: keepachangelog  # or "simple"

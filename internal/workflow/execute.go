@@ -8,14 +8,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/drummonds/task-plus/internal/changelog"
-	"github.com/drummonds/task-plus/internal/config"
-	"github.com/drummonds/task-plus/internal/deploy"
-	"github.com/drummonds/task-plus/internal/git"
-	"github.com/drummonds/task-plus/internal/prompt"
-	"github.com/drummonds/task-plus/internal/readme"
-	"github.com/drummonds/task-plus/internal/release"
-	"github.com/drummonds/task-plus/internal/version"
+	"codeberg.org/hum3/task-plus/internal/changelog"
+	"codeberg.org/hum3/task-plus/internal/config"
+	"codeberg.org/hum3/task-plus/internal/deploy"
+	"codeberg.org/hum3/task-plus/internal/git"
+	"codeberg.org/hum3/task-plus/internal/prompt"
+	"codeberg.org/hum3/task-plus/internal/readme"
+	"codeberg.org/hum3/task-plus/internal/release"
+	"codeberg.org/hum3/task-plus/internal/version"
 )
 
 // rollback tracks state for undoing local mutations on failure.

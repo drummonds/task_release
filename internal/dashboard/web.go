@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/drummonds/lofigui"
-	"github.com/drummonds/task-plus/internal/agent"
+	"codeberg.org/hum3/task-plus/internal/agent"
 )
 
 const webStartPort = 8091

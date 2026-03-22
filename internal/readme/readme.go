@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/drummonds/task-plus/internal/config"
-	"github.com/drummonds/task-plus/internal/deploy"
-	"github.com/drummonds/task-plus/internal/git"
+	"codeberg.org/hum3/task-plus/internal/config"
+	"codeberg.org/hum3/task-plus/internal/deploy"
+	"codeberg.org/hum3/task-plus/internal/git"
 )
 
 // Update reads README.md in dir, replaces auto-marker sections, and writes back.

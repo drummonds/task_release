@@ -9,23 +9,23 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/drummonds/task-plus/internal/check"
-	"github.com/drummonds/task-plus/internal/claude"
-	"github.com/drummonds/task-plus/internal/combine"
-	"github.com/drummonds/task-plus/internal/config"
-	"github.com/drummonds/task-plus/internal/deploy"
-	"github.com/drummonds/task-plus/internal/favicon"
-	"github.com/drummonds/task-plus/internal/forge"
-	"github.com/drummonds/task-plus/internal/git"
-	"github.com/drummonds/task-plus/internal/md2html"
-	"github.com/drummonds/task-plus/internal/mdupdate"
-	"github.com/drummonds/task-plus/internal/pages"
-	"github.com/drummonds/task-plus/internal/prompt"
-	"github.com/drummonds/task-plus/internal/readme"
-	"github.com/drummonds/task-plus/internal/self"
-	"github.com/drummonds/task-plus/internal/version"
-	"github.com/drummonds/task-plus/internal/workflow"
-	"github.com/drummonds/task-plus/internal/worktree"
+	"codeberg.org/hum3/task-plus/internal/check"
+	"codeberg.org/hum3/task-plus/internal/claude"
+	"codeberg.org/hum3/task-plus/internal/combine"
+	"codeberg.org/hum3/task-plus/internal/config"
+	"codeberg.org/hum3/task-plus/internal/deploy"
+	"codeberg.org/hum3/task-plus/internal/favicon"
+	"codeberg.org/hum3/task-plus/internal/forge"
+	"codeberg.org/hum3/task-plus/internal/git"
+	"codeberg.org/hum3/task-plus/internal/md2html"
+	"codeberg.org/hum3/task-plus/internal/mdupdate"
+	"codeberg.org/hum3/task-plus/internal/pages"
+	"codeberg.org/hum3/task-plus/internal/prompt"
+	"codeberg.org/hum3/task-plus/internal/readme"
+	"codeberg.org/hum3/task-plus/internal/self"
+	"codeberg.org/hum3/task-plus/internal/version"
+	"codeberg.org/hum3/task-plus/internal/workflow"
+	"codeberg.org/hum3/task-plus/internal/worktree"
 )
 
 var (
@@ -47,6 +47,7 @@ var commands = []struct {
 }{
 	{"check", "Validate task-plus.yml and Taskfile.yml configuration"},
 	{"release", "Interactive release workflow (runs Taskfile post:release if present)"},
+	{"release:rc-setup", "Add rc_site to pages_deploy targets in task-plus.yml"},
 	{"release:version-update", "Scaffold a Taskfile task to update version strings (--init)"},
 	{"repos", "Manage git remotes for release (info, add, remove)"},
 	{"pages", "Serve docs/ directory over HTTP (subcommands: deploy, promote, config, combine)"},
@@ -81,6 +82,8 @@ func Main() {
 		runRelease(os.Args[2:])
 	case "pages":
 		runPages(os.Args[2:])
+	case "release:rc-setup":
+		runReleaseRCSetup(os.Args[2:])
 	case "release:version-update":
 		runReleaseVersionUpdate(os.Args[2:])
 	case "repos":
@@ -644,6 +647,77 @@ func runReadme(args []string) {
 		os.Exit(1)
 	}
 	fmt.Println("README.md updated.")
+}
+
+func runReleaseRCSetup(args []string) {
+	fs := flag.NewFlagSet("release:rc-setup", flag.ExitOnError)
+	dir := fs.String("dir", ".", "project directory")
+	_ = fs.Parse(args)
+
+	absDir, err := filepath.Abs(*dir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	cfg, err := config.Load(absDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Find statichost targets that need an rc_site
+	var needRC []string
+	for _, t := range cfg.PagesDeploy {
+		if t.Type == "statichost" && t.Site != "" && !t.HasRCSite() {
+			needRC = append(needRC, t.Site)
+		}
+	}
+	if len(needRC) == 0 {
+		if len(cfg.PagesDeploy) == 0 {
+			fmt.Fprintf(os.Stderr, "No pages_deploy targets configured in task-plus.yml\n")
+			os.Exit(1)
+		}
+		fmt.Println("All statichost targets already have rc_site configured.")
+		return
+	}
+
+	// Text-based insertion: find each "site: <name>" line and insert rc_site after it
+	path := filepath.Join(absDir, "task-plus.yml")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error reading task-plus.yml: %v\n", err)
+		os.Exit(1)
+	}
+
+	lines := strings.Split(string(data), "\n")
+	var out []string
+	for _, line := range lines {
+		out = append(out, line)
+		trimmed := strings.TrimSpace(line)
+		for _, site := range needRC {
+			if trimmed == "site: "+site {
+				// Match indentation of the site: line
+				indent := line[:len(line)-len(strings.TrimLeft(line, " \t"))]
+				rcSite := site + "-rc"
+				out = append(out, indent+"rc_site: "+rcSite)
+				fmt.Printf("  Added rc_site: %s (for site: %s)\n", rcSite, site)
+			}
+		}
+	}
+
+	if err := os.WriteFile(path, []byte(strings.Join(out, "\n")), 0644); err != nil {
+		fmt.Fprintf(os.Stderr, "Error writing task-plus.yml: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("\nNext steps:")
+	for _, site := range needRC {
+		rcSite := site + "-rc"
+		fmt.Printf("  Create RC site at https://builder.statichost.eu\n")
+		fmt.Printf("    Site name: %s\n", rcSite)
+	}
+	fmt.Println("  Then run: tp check")
 }
 
 func runReleaseVersionUpdate(args []string) {

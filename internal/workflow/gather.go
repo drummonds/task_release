@@ -5,11 +5,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/drummonds/task-plus/internal/cleanup"
-	"github.com/drummonds/task-plus/internal/config"
-	"github.com/drummonds/task-plus/internal/forge"
-	"github.com/drummonds/task-plus/internal/git"
-	"github.com/drummonds/task-plus/internal/version"
+	"codeberg.org/hum3/task-plus/internal/cleanup"
+	"codeberg.org/hum3/task-plus/internal/config"
+	"codeberg.org/hum3/task-plus/internal/forge"
+	"codeberg.org/hum3/task-plus/internal/git"
+	"codeberg.org/hum3/task-plus/internal/version"
 )
 
 // Gather performs read-only state probing to populate the plan.

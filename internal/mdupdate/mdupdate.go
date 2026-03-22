@@ -12,8 +12,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/drummonds/task-plus/internal/git"
-	"github.com/drummonds/task-plus/internal/readme"
+	"codeberg.org/hum3/task-plus/internal/git"
+	"codeberg.org/hum3/task-plus/internal/readme"
 )
 
 // Options configures which markers to process.

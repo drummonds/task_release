@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/drummonds/task-plus/internal/config"
-	"github.com/drummonds/task-plus/internal/prompt"
-	"github.com/drummonds/task-plus/internal/releasecomment"
-	"github.com/drummonds/task-plus/internal/version"
+	"codeberg.org/hum3/task-plus/internal/config"
+	"codeberg.org/hum3/task-plus/internal/prompt"
+	"codeberg.org/hum3/task-plus/internal/releasecomment"
+	"codeberg.org/hum3/task-plus/internal/version"
 )
 
 // Ask presents all user prompts using gathered state, populating user decisions in the plan.

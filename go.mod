@@ -1,4 +1,4 @@
-module github.com/drummonds/task-plus
+module codeberg.org/hum3/task-plus
 
 go 1.25.3
 

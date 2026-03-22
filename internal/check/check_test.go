@@ -335,6 +335,56 @@ func TestCheckStatichost_RCSite(t *testing.T) {
 	}
 }
 
+func TestRemoteURLToModulePath(t *testing.T) {
+	tests := []struct {
+		url  string
+		want string
+	}{
+		{"ssh://git@codeberg.org/hum3/task-plus.git", "codeberg.org/hum3/task-plus"},
+		{"git@github.com:drummonds/task-plus.git", "github.com/drummonds/task-plus"},
+		{"https://github.com/drummonds/task-plus.git", "github.com/drummonds/task-plus"},
+		{"https://codeberg.org/hum3/task-plus", "codeberg.org/hum3/task-plus"},
+		{"ssh://git@codeberg.org/hum3/go-luca.git", "codeberg.org/hum3/go-luca"},
+		{"git@codeberg.org:hum3/go-luca.git", "codeberg.org/hum3/go-luca"},
+	}
+	for _, tt := range tests {
+		got := remoteURLToModulePath(tt.url)
+		if got != tt.want {
+			t.Errorf("remoteURLToModulePath(%q) = %q, want %q", tt.url, got, tt.want)
+		}
+	}
+}
+
+func TestReadGoModulePath(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "go.mod")
+
+	// Valid go.mod
+	_ = os.WriteFile(path, []byte("module codeberg.org/hum3/task-plus\n\ngo 1.25.3\n"), 0644)
+	got, err := readGoModulePath(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != "codeberg.org/hum3/task-plus" {
+		t.Errorf("got %q, want %q", got, "codeberg.org/hum3/task-plus")
+	}
+
+	// No module directive
+	_ = os.WriteFile(path, []byte("go 1.25.3\n"), 0644)
+	_, err = readGoModulePath(path)
+	if err == nil {
+		t.Error("expected error for missing module directive")
+	}
+}
+
+func TestCheckGoModule_NotGoProject(t *testing.T) {
+	dir := t.TempDir()
+	findings := checkGoModule(dir)
+	if len(findings) != 1 || findings[0].level != levelOK {
+		t.Errorf("expected 1 OK for non-Go project, got %v", findings)
+	}
+}
+
 // roundTripFunc adapts a function to http.RoundTripper.
 type roundTripFunc func(*http.Request) (*http.Response, error)
 

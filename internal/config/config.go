@@ -34,6 +34,7 @@ type Config struct {
 	InstallRetries   int             `yaml:"install_retries"`
 	PagesBuild       []string        `yaml:"pages_build"`
 	PagesDeploy      []deploy.Target `yaml:"pages_deploy"`
+	RetractReviewed  string          `yaml:"retract_reviewed"`
 	DocsRepo         string          `yaml:"docs_repo"`
 	ParentRepo       string          `yaml:"parent_repo"`
 	Dir              string          `yaml:"-"`

@@ -69,6 +69,7 @@ var knownConfigKeys = map[string]bool{
 	"linter":            true,
 	"pages_build":       true,
 	"pages_deploy":      true,
+	"retract_reviewed":  true,
 	"docs_repo":         true,
 	"parent_repo":       true,
 }
@@ -142,22 +143,38 @@ func printSection(s section, verbose bool) (errors, warnings int) {
 // Run validates the project configuration in dir and prints a report.
 // Returns an error if any ERROR-level findings exist.
 func Run(dir string, verbose bool) error {
-	sections := []section{
+	// Phase 1: Local checks (fast, no network)
+	localSections := []section{
 		{"task-plus.yml", checkConfig(dir)},
 		{"Taskfile.yml", checkTaskfile(dir)},
 		{"Go module", checkGoModule(dir)},
 		{"Remotes", checkRemotes(dir)},
-		checkVersionSection(dir),
 		{"Cross-repo", checkCrossRepo(dir)},
 		{"Worktrees", checkWorktrees(dir)},
 		{"GitHub Pages", checkGitHubPages(dir)},
-		{"Statichost", checkStatichost(dir)},
 		{"Favicon", checkFavicon(dir)},
 	}
 
 	var totalErrors, totalWarnings int
-	for i, s := range sections {
+	for i, s := range localSections {
 		if verbose && i > 0 {
+			fmt.Println()
+		}
+		e, w := printSection(s, verbose)
+		totalErrors += e
+		totalWarnings += w
+	}
+
+	// Phase 2: Remote checks (network required, may be slow)
+	fmt.Println("\nChecking external resources...")
+	remoteSections := []section{
+		checkVersionSection(dir),
+		{"Go proxy", checkGoProxy(dir)},
+		{"Statichost", checkStatichost(dir)},
+	}
+
+	for _, s := range remoteSections {
+		if verbose {
 			fmt.Println()
 		}
 		e, w := printSection(s, verbose)
@@ -807,6 +824,50 @@ func checkStatichost(dir string) []finding {
 	return findings
 }
 
+func checkGoProxy(dir string) []finding {
+	var findings []finding
+
+	cfg, err := config.Load(dir)
+	if err != nil || !cfg.HasGoMod() {
+		findings = append(findings, finding{levelOK, "Not a Go project"})
+		return findings
+	}
+
+	modPath, err := readGoModulePath(filepath.Join(dir, "go.mod"))
+	if err != nil {
+		findings = append(findings, finding{levelWarn, fmt.Sprintf("Cannot read go.mod: %v", err)})
+		return findings
+	}
+
+	tags, err := git.Tags(dir)
+	if err != nil {
+		findings = append(findings, finding{levelWarn, fmt.Sprintf("Cannot read tags: %v", err)})
+		return findings
+	}
+	latest, ok := version.LatestFromTags(tags)
+	if !ok {
+		findings = append(findings, finding{levelOK, "No version tags"})
+		return findings
+	}
+
+	tagName := latest.String() // "vX.Y.Z"
+	url := fmt.Sprintf("https://proxy.golang.org/%s/@v/%s.info", modPath, tagName)
+	resp, err := statichostHTTPClient.Get(url)
+	if err != nil {
+		findings = append(findings, finding{levelWarn, fmt.Sprintf("proxy unreachable: %v", err)})
+		return findings
+	}
+	_ = resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		findings = append(findings, finding{levelOK, fmt.Sprintf("%s@%s indexed", modPath, tagName)})
+	} else {
+		findings = append(findings, finding{levelWarn, fmt.Sprintf("%s@%s not on proxy (HTTP %d)", modPath, tagName, resp.StatusCode)})
+	}
+
+	return findings
+}
+
 func checkFavicon(dir string) []finding {
 	var findings []finding
 
@@ -931,6 +992,26 @@ func checkVersionSection(dir string) section {
 			} else {
 				findings = append(findings, finding{levelWarn, fmt.Sprintf("%s: missing %s", remote, tagName)})
 				allMatch = false
+			}
+		}
+	}
+
+	// 5. Retract review check (Go projects with multiple remotes)
+	if cfg != nil && cfg.HasGoMod() && len(cfg.Remotes) > 1 && hasTag {
+		reviewed := cfg.RetractReviewed
+		if reviewed == "" {
+			findings = append(findings, finding{levelWarn, "retract_reviewed not set in task-plus.yml (multi-remote Go project)"})
+			allMatch = false
+		} else {
+			rv, err := version.Parse(reviewed)
+			if err != nil {
+				findings = append(findings, finding{levelWarn, fmt.Sprintf("retract_reviewed: invalid version %q", reviewed)})
+				allMatch = false
+			} else if rv.Less(latest) {
+				findings = append(findings, finding{levelWarn, fmt.Sprintf("retract_reviewed (%s) behind latest tag (v%s)", reviewed, latest.TagString())})
+				allMatch = false
+			} else {
+				findings = append(findings, finding{levelOK, fmt.Sprintf("retract_reviewed: %s", reviewed)})
 			}
 		}
 	}

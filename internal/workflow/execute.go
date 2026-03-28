@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -375,6 +376,22 @@ func executeSteps(ctx *Context, rb *rollback) error {
 		}
 	}
 
+	// 11b. Poke Go module proxy so the version gets indexed for everyone
+	if p.DoPush && ctx.Config.HasGoMod() && !p.IsFork {
+		modPath, err := version.ModulePath(ctx.Config.Dir)
+		if err == nil {
+			proxyURL := fmt.Sprintf("https://proxy.golang.org/%s/@v/%s.info", modPath, p.Version)
+			fmt.Printf("  Updating Go proxy index for %s@%s...\n", modPath, p.Version)
+			if ctx.DryRun {
+				fmt.Printf("  (dry-run) Would GET %s\n", proxyURL)
+			} else {
+				if err := pokeGoProxy(proxyURL); err != nil {
+					fmt.Printf("  Warning: proxy poke failed: %v\n", err)
+				}
+			}
+		}
+	}
+
 	// 12. Pages deploy (delegates to -docs sibling if available)
 	if p.DoDeploy {
 		deployDir := ctx.Config.Dir
@@ -456,5 +473,19 @@ func executeSteps(ctx *Context, rb *rollback) error {
 		}
 	}
 
+	return nil
+}
+
+// pokeGoProxy sends a GET request to the Go module proxy to trigger indexing.
+func pokeGoProxy(url string) error {
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		return err
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("HTTP %d", resp.StatusCode)
+	}
 	return nil
 }

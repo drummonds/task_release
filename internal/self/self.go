@@ -8,13 +8,14 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 )
 
 const (
-	modulePath = "codeberg.org/hum3/task-plus/cmd/task-plus"
 	moduleName = "codeberg.org/hum3/task-plus"
+	modulePath = moduleName + "/cmd/task-plus"
 )
 
 // Run dispatches self sub-subcommands.
@@ -54,8 +55,47 @@ func runUpdate(currentVersion string) error {
 		return fmt.Errorf("go install: %w", err)
 	}
 
+	if err := symlinkTP(); err != nil {
+		fmt.Printf("Warning: could not create tp symlink: %v\n", err)
+	}
+
 	fmt.Println("Updated successfully.")
 	return nil
+}
+
+// symlinkTP creates a "tp" symlink pointing to "task-plus" in GOBIN.
+func symlinkTP() error {
+	binDir, err := goBinDir()
+	if err != nil {
+		return err
+	}
+	target := filepath.Join(binDir, "task-plus")
+	link := filepath.Join(binDir, "tp")
+
+	// Remove existing file/symlink so we can recreate it.
+	if _, err := os.Lstat(link); err == nil {
+		if err := os.Remove(link); err != nil {
+			return fmt.Errorf("remove old tp: %w", err)
+		}
+	}
+	fmt.Printf("Symlinking: %s -> %s\n", link, target)
+	return os.Symlink(target, link)
+}
+
+// goBinDir returns the directory where "go install" places binaries.
+func goBinDir() (string, error) {
+	if dir := os.Getenv("GOBIN"); dir != "" {
+		return dir, nil
+	}
+	out, err := exec.Command("go", "env", "GOPATH").Output()
+	if err != nil {
+		return "", fmt.Errorf("go env GOPATH: %w", err)
+	}
+	gopath := strings.TrimSpace(string(out))
+	if gopath == "" {
+		return "", fmt.Errorf("GOPATH is empty")
+	}
+	return filepath.Join(gopath, "bin"), nil
 }
 
 // FetchLatestVersion queries the Go module proxy for the latest version

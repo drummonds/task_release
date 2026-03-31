@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.1.72] - 2026-03-31
+
+ - Make tp a symlink to task-plus instead of a separate binary
+
 ## [0.1.71] - 2026-03-28
 
  - Add /c shorthand to wt start for quick clean

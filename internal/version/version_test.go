@@ -174,8 +174,8 @@ func TestWithPrerelease(t *testing.T) {
 
 func TestParseRC(t *testing.T) {
 	tests := []struct {
-		input string
-		wantN int
+		input  string
+		wantN  int
 		wantOK bool
 	}{
 		{"rc1", 1, true},

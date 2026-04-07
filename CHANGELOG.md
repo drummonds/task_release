@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.1.76] - 2026-04-07
+
+ - Fix #15: make breadcrumbs clickable, depth-aware, and optional
+
 ## [0.1.75] - 2026-04-05
 
  - Fix #14: show dry-run commit messages; add clean:ports command (#13)

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.1.77] - 2026-05-03
+
+ - Fix #16: md2html skips files whose output is newer than source; add --rebuild
+
  - Fix #16: md2html skips files whose output is newer than the source; `--rebuild` forces a full rebuild
 
 ## [0.1.76] - 2026-04-07

@@ -845,7 +845,8 @@ func checkGoProxy(dir string) []finding {
 		findings = append(findings, finding{levelWarn, fmt.Sprintf("Cannot read tags: %v", err)})
 		return findings
 	}
-	latest, ok := version.LatestFromTags(tags)
+	retracted, _ := version.ParseRetracted(dir)
+	latest, ok := version.LatestFromTags(tags, retracted)
 	if !ok {
 		findings = append(findings, finding{levelOK, "No version tags"})
 		return findings
@@ -909,13 +910,14 @@ func checkVersionSection(dir string) section {
 
 	cfg, _ := config.Load(dir)
 
-	// 1. Local tags
+	// 1. Local tags (excluding versions retracted in go.mod)
 	tags, err := git.Tags(dir)
 	if err != nil {
 		findings = append(findings, finding{levelWarn, fmt.Sprintf("Cannot read git tags: %v", err)})
 		return section{"Version", findings}
 	}
-	latest, hasTag := version.LatestFromTags(tags)
+	retracted, _ := version.ParseRetracted(dir)
+	latest, hasTag := version.LatestFromTags(tags, retracted)
 
 	// 2. Changelog
 	clVer := changelog.LatestVersion(dir)
